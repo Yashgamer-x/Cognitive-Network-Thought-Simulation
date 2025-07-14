@@ -21,28 +21,11 @@ public class Arrow extends Group {
     private final Line line;
     private Polygon arrowHead;
 
-    private final DoubleProperty startX;
-    private final DoubleProperty startY;
-    private final DoubleProperty endX;
-    private final DoubleProperty endY;
-
     /**Constructor setting the line's starting and ending point, width is set to 2px and creates arrowhead*/
     public Arrow(double startX, double startY, double endX, double endY) {
-        //Initialization of observable property
-        this.startX = new SimpleDoubleProperty(startX);
-        this.startY = new SimpleDoubleProperty(startY);
-        this.endX = new SimpleDoubleProperty(endX);
-        this.endY = new SimpleDoubleProperty(endY);
-
         //Initialization of Line
-        this.line = new Line();
+        this.line = new Line(startX, startY, endX, endY);
         this.line.setStrokeWidth(2);
-
-        // Bind line endpoints to properties
-        line.startXProperty().bind(this.startX);
-        line.startYProperty().bind(this.startY);
-        line.endXProperty().bind(this.endX);
-        line.endYProperty().bind(this.endY);
 
         this.arrowHead = createArrowHead(startX, startY, endX, endY);
         getChildren().addAll(line, arrowHead);
@@ -50,12 +33,6 @@ public class Arrow extends Group {
         this.setOnMousePressed(_ -> {
             detachThis();
         });
-
-        // Auto-update arrowhead when any endpoint changes
-        this.startX.addListener(_-> updateArrowHead());
-        this.startY.addListener(_-> updateArrowHead());
-        this.endX.addListener(_ -> updateArrowHead());
-        this.endY.addListener(_ -> updateArrowHead());
     }
 
     private void detachThis() {
@@ -113,10 +90,5 @@ public class Arrow extends Group {
         );
         getChildren().add(arrowHead);
     }
-
-    public DoubleProperty startXProperty() { return startX; }
-    public DoubleProperty startYProperty() { return startY; }
-    public DoubleProperty endXProperty() { return endX; }
-    public DoubleProperty endYProperty() { return endY; }
 
 }
