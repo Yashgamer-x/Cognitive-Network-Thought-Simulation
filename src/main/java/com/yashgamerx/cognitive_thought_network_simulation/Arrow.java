@@ -1,46 +1,65 @@
 package com.yashgamerx.cognitive_thought_network_simulation;
 
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.scene.Group;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Polygon;
 import lombok.Getter;
 
-/**This Class creates Arrow <br/>
- * Usage:
- * <PRE>
- * import com.yashgamerx.cognitive_thought_network_simulation.*;
- *
- * Arrow arrow = new Arrow(double startX, double startY, double endX, double endY);
- *
- * </PRE> */
+/**
+ * Represents an arrow composed of a line and a triangular head.
+ * <p>
+ * Usage Example:
+ * <pre>
+ * Arrow arrow = new Arrow(startX, startY, endX, endY);
+ * </pre>
+ */
 @Getter
 public class Arrow extends Group {
+
+    /** Main shaft of the arrow. */
     private final Line line;
+
+    /** Triangular tip of the arrow. */
     private Polygon arrowHead;
 
-    /**Constructor setting the line's starting and ending point, width is set to 2px and creates arrowhead*/
+    /**
+     * Constructs an Arrow between the given coordinates.
+     *
+     * @param startX starting x-coordinate
+     * @param startY starting y-coordinate
+     * @param endX   ending x-coordinate
+     * @param endY   ending y-coordinate
+     */
     public Arrow(double startX, double startY, double endX, double endY) {
-        //Initialization of Line
         this.line = new Line(startX, startY, endX, endY);
         this.line.setStrokeWidth(2);
 
         this.arrowHead = createArrowHead(startX, startY, endX, endY);
         getChildren().addAll(line, arrowHead);
         setMouseTransparent(true);
-        this.setOnMousePressed(_ -> {
-            detachThis();
-        });
+
+        this.setOnMousePressed(_ -> detachThis());
     }
 
+    /**
+     * Detaches the arrow from the whiteboard if eraser tool is active.
+     */
     private void detachThis() {
-        if(Whiteboard.getInstance().getCurrentTool() == Tool.ERASER)
+        if (Whiteboard.getInstance().getCurrentTool() == Tool.ERASER) {
             Whiteboard.getInstance().removeChildrenObject(this);
+        }
     }
 
-    /**Creates triangular arrowhead*/
+    /**
+     * Creates the triangular arrowhead based on the line direction.
+     *
+     * @param startX line start x-coordinate
+     * @param startY line start y-coordinate
+     * @param endX   line end x-coordinate
+     * @param endY   line end y-coordinate
+     * @return a Polygon representing the arrowhead
+     */
     private Polygon createArrowHead(double startX, double startY, double endX, double endY) {
         double arrowLength = 10;
         double arrowWidth = 7;
@@ -64,22 +83,33 @@ public class Arrow extends Group {
         return arrowHead;
     }
 
-
-    // Optional: setters if you want to change position dynamically
+    /**
+     * Sets a new starting point for the arrow.
+     *
+     * @param x new start x-coordinate
+     * @param y new start y-coordinate
+     */
     public void setStart(double x, double y) {
         line.setStartX(x);
         line.setStartY(y);
         updateArrowHead();
     }
 
-    /**Sets the endX value of the line and updates the arrow head position and angle*/
+    /**
+     * Sets a new ending point for the arrow.
+     *
+     * @param x new end x-coordinate
+     * @param y new end y-coordinate
+     */
     public void setEnd(double x, double y) {
         line.setEndX(x);
         line.setEndY(y);
         updateArrowHead();
     }
 
-    /**Removes old arrowhead from the list of children and adds new */
+    /**
+     * Recalculates and replaces the current arrowhead.
+     */
     public void updateArrowHead() {
         getChildren().remove(arrowHead);
         arrowHead = createArrowHead(
@@ -90,5 +120,4 @@ public class Arrow extends Group {
         );
         getChildren().add(arrowHead);
     }
-
 }

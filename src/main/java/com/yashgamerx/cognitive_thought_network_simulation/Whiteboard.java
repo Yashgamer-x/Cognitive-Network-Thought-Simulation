@@ -1,6 +1,5 @@
 package com.yashgamerx.cognitive_thought_network_simulation;
 
-
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Point2D;
@@ -11,24 +10,39 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import lombok.Getter;
 
+/**
+ * Manages an interactive whiteboard UI that supports drawing arrows, circles,
+ * scrolling, and tool selection for cognitive thought network simulations.
+ */
 public class Whiteboard {
+
+    /** Singleton instance of Whiteboard. */
     @Getter
     private static Whiteboard instance;
+
     @FXML private ScrollPane scrollPane;
     @FXML private Pane whiteboard;
+
+    /** Currently selected drawing tool. */
     @Getter
     private Tool currentTool;
+
     private double lastMouseX, lastMouseY;
+
+    /** Indicates if an arrow is actively being drawn. */
     @Getter
     private boolean arrowing;
+
     private Arrow currentArrow;
+
     private final double BUFFER = 200;
     private final double GROWTH_CHUNK = 1000;
     private final double MAX_CANVAS_SIZE = 100_000;
 
+    /** Initializes whiteboard properties and sets up instance reference. */
     @FXML
-    public void initialize(){
-        whiteboard.setMinSize(4000, 4000); // Large whiteboard
+    public void initialize() {
+        whiteboard.setMinSize(4000, 4000);
         currentTool = null;
         arrowing = false;
         currentArrow = null;
@@ -36,100 +50,94 @@ public class Whiteboard {
     }
 
     /**
-     * <PRE>
-     * Options:
-     * Draw Line
-     * Draw Circle (requires name of thought)</PRE>*/
+     * Handles mouse click events based on the selected tool.
+     *
+     * @param e MouseEvent containing click information
+     */
     @FXML
     private void handleMouseClicked(MouseEvent e) {
-        if(currentTool == null) return;
+        if (currentTool == null) return;
+
         var startX = e.getX();
         var startY = e.getY();
-        switch (currentTool){
-//            case LINE -> onLineDraw(startX, startY);
+        switch (currentTool) {
             case CIRCLE -> onCircleDraw(startX, startY);
         }
     }
 
-    private void bindStartArrow(CircleController circleController){
+    private void bindStartArrow(CircleController circleController) {
         var stackPane = circleController.getStackPane();
-        var centerWidth = stackPane.getWidth()/2;
-        var centerHeight = stackPane.getHeight()/2;
         var line = currentArrow.getLine();
-        line.startXProperty().bind(stackPane.layoutXProperty().add(centerWidth));
-        line.startYProperty().bind(stackPane.layoutYProperty().add(centerHeight));
+        line.startXProperty().bind(stackPane.layoutXProperty().add(stackPane.getWidth() / 2));
+        line.startYProperty().bind(stackPane.layoutYProperty().add(stackPane.getHeight() / 2));
     }
 
-    private void bindEndArrow(CircleController circleController){
+    private void bindEndArrow(CircleController circleController) {
         var stackPane = circleController.getStackPane();
-        var centerWidth = stackPane.getWidth()/2;
-        var centerHeight = stackPane.getHeight()/2;
         var line = currentArrow.getLine();
-        line.endXProperty().bind(stackPane.layoutXProperty().add(centerWidth));
-        line.endYProperty().bind(stackPane.layoutYProperty().add(centerHeight));
+        line.endXProperty().bind(stackPane.layoutXProperty().add(stackPane.getWidth() / 2));
+        line.endYProperty().bind(stackPane.layoutYProperty().add(stackPane.getHeight() / 2));
     }
 
-    public void startArrowDraw(double startX, double startY, CircleController circleController){
+    /** Starts arrow drawing on the whiteboard and binds its start to a thought circle. */
+    public void startArrowDraw(double startX, double startY, CircleController circleController) {
         currentArrow = new Arrow(startX, startY, startX, startY);
         bindStartArrow(circleController);
         whiteboard.getChildren().addFirst(currentArrow);
         arrowing = true;
     }
 
-    public void setCurrentArrowTransparency(boolean transparency){
+    /** Sets the transparency behavior of the current arrow. */
+    public void setCurrentArrowTransparency(boolean transparency) {
         currentArrow.setMouseTransparent(transparency);
     }
 
-    public void removeChildrenObject(Object object){
+    /** Removes a graphical object from the whiteboard. */
+    public void removeChildrenObject(Object object) {
         whiteboard.getChildren().remove(object);
     }
 
-    public void endArrowDraw(double endX, double endY, CircleController circleController){
+    /** Ends the arrow drawing and binds its end to a thought circle. */
+    public void endArrowDraw(double endX, double endY, CircleController circleController) {
         currentArrow.setEnd(endX, endY);
         bindEndArrow(circleController);
         currentArrow = null;
         arrowing = false;
     }
 
-    private void onCircleDraw(double startX, double startY){
-        try{
+    private void onCircleDraw(double startX, double startY) {
+        try {
             FXMLLoader fxmlLoader = new FXMLLoader(Whiteboard.class.getResource("fxml/Circle_Label.fxml"));
-            var stackPane= (StackPane)fxmlLoader.load();
-            var controller = (CircleController)fxmlLoader.getController();
-            if(!TextInputDialogForCircleClass.dialog(controller)) return;
+            var stackPane = (StackPane) fxmlLoader.load();
+            var controller = (CircleController) fxmlLoader.getController();
+            if (!TextInputDialogForCircleClass.dialog(controller)) return;
 
-            // 🌟 Expand pane if needed
-            double requiredWidth = startX + BUFFER;
-            double requiredHeight = startY + BUFFER;
-
-            if (requiredWidth > whiteboard.getPrefWidth()) {
-                double newWidth = Math.min(MAX_CANVAS_SIZE, requiredWidth + GROWTH_CHUNK);
-                whiteboard.setPrefWidth(newWidth);
+            // Expand whiteboard if needed
+            if (startX + BUFFER > whiteboard.getPrefWidth()) {
+                whiteboard.setPrefWidth(Math.min(MAX_CANVAS_SIZE, startX + BUFFER + GROWTH_CHUNK));
             }
-            if (requiredHeight > whiteboard.getPrefHeight()) {
-                double newHeight = Math.min(MAX_CANVAS_SIZE, requiredHeight + GROWTH_CHUNK);
-                whiteboard.setPrefHeight(newHeight);
+            if (startY + BUFFER > whiteboard.getPrefHeight()) {
+                whiteboard.setPrefHeight(Math.min(MAX_CANVAS_SIZE, startY + BUFFER + GROWTH_CHUNK));
             }
 
             stackPane.setLayoutX(startX);
             stackPane.setLayoutY(startY);
-
             whiteboard.getChildren().add(stackPane);
         } catch (Exception _) {
-            System.out.println("Unable to load Whiteboard.fxml");
+            System.out.println("Unable to load Circle_Label.fxml");
         }
     }
 
-    /**Stores the X and Y value when the mouse button is pressed*/
+    /** Captures mouse press coordinates for scroll tracking. */
     @FXML
-    private void handleMousePressed(MouseEvent e){
-        if(e.getButton() == MouseButton.MIDDLE || e.getButton() == MouseButton.SECONDARY){
+    private void handleMousePressed(MouseEvent e) {
+        if (e.getButton() == MouseButton.MIDDLE || e.getButton() == MouseButton.SECONDARY) {
             lastMouseX = e.getSceneX();
             lastMouseY = e.getSceneY();
         }
     }
 
-    private void manageScrollOnDrag(double x, double y){
+    private void manageScrollOnDrag(double x, double y) {
         Point2D current = new Point2D(x, y);
         double deltaX = lastMouseX - current.getX();
         double deltaY = lastMouseY - current.getY();
@@ -150,48 +158,44 @@ public class Whiteboard {
     }
 
     /**
-     * Handles Mouse Drag events <br>
-     * Drag using secondary button or middle button will be considered as scrolling
-     * */
+     * Enables scroll behavior when dragging with middle or secondary mouse button.
+     *
+     * @param e MouseEvent with drag details
+     */
     @FXML
-    private void handleMouseDragged(MouseEvent e){
-        if(e.getButton() == MouseButton.MIDDLE || e.getButton() == MouseButton.SECONDARY){
+    private void handleMouseDragged(MouseEvent e) {
+        if (e.getButton() == MouseButton.MIDDLE || e.getButton() == MouseButton.SECONDARY) {
             manageScrollOnDrag(e.getSceneX(), e.getSceneY());
         }
     }
 
-    /**Directs the arrow when mouse is moved*/
+    /** Updates current arrow position to follow mouse movement. */
     @FXML
-    private void handleMouseMoved(MouseEvent e){
+    private void handleMouseMoved(MouseEvent e) {
         if (currentTool == Tool.LINE && arrowing && currentArrow != null) {
-            currentArrow.setEnd(e.getX(), e.getY()); // Follow mouse
+            currentArrow.setEnd(e.getX(), e.getY());
         }
     }
 
-    /** Looks up for the ImageView based on current used tool
-     * @param tool The tool users want to search for
-     * @return ImageView*/
-    private ImageView imageViewLookup(Tool tool){
+    /**
+     * Retrieves the ImageView associated with a tool from the UI.
+     *
+     * @param tool tool to look up
+     * @return ImageView node
+     */
+    private ImageView imageViewLookup(Tool tool) {
         var scene = MainApplication.getStage().getScene();
-        switch (tool) {
-            case LINE -> {
-                return (ImageView) scene.lookup("#line");
-            }
-            case CIRCLE -> {
-                return (ImageView) scene.lookup("#circle");
-            }
-            case ERASER -> {
-                return (ImageView) scene.lookup("#eraser");
-            }
-            default -> {
-                return null;
-            }
-        }
+        return switch (tool) {
+            case LINE -> (ImageView) scene.lookup("#line");
+            case CIRCLE -> (ImageView) scene.lookup("#circle");
+            case ERASER -> (ImageView) scene.lookup("#eraser");
+            default -> null;
+        };
     }
 
-    /**To unequip the tool, it shrinks the ImageView scale back to 1.0*/
-    private void unequipTool(){
-        if(currentTool!=null){
+    /** Unequips the current tool and resets its icon scale. */
+    private void unequipTool() {
+        if (currentTool != null) {
             stopDrawing();
             var imageView = imageViewLookup(currentTool);
             imageView.setScaleX(1.0);
@@ -199,35 +203,36 @@ public class Whiteboard {
         }
     }
 
-    /**Equips the mentioned tool if It's not currently equipped.<br/>
-     *  Clicking the same equipped tool again will unequip it*/
-    private void equipTool(Tool tool){
-        if(currentTool == tool) {
+    /**
+     * Equips the given tool and scales its ImageView icon.
+     *
+     * @param tool tool to equip
+     */
+    private void equipTool(Tool tool) {
+        if (currentTool == tool) {
             currentTool = null;
             return;
         }
         var imageView = imageViewLookup(tool);
-        if(imageView!=null){
+        if (imageView != null) {
             imageView.setScaleX(1.2);
             imageView.setScaleY(1.2);
         }
         currentTool = tool;
     }
 
-    private void stopDrawing(){
-        if(currentTool == Tool.LINE) {
+    /** Cancels arrow drawing and removes the active arrow from whiteboard. */
+    private void stopDrawing() {
+        if (currentTool == Tool.LINE) {
             arrowing = false;
-            if(currentArrow != null) {
+            if (currentArrow != null) {
                 whiteboard.getChildren().remove(currentArrow);
                 currentArrow = null;
             }
         }
     }
 
-    /**This sets the current tool to line. <br>
-     * If the current tool is line, and the arrow is being drawn, clicking this tool will remove arrow. <br>
-     * Explanation: This allows user to unselect the accidental drawing.
-     * */
+    /** Activates the line drawing tool or cancels if already active. */
     @FXML
     private void useLine() {
         unequipTool();
@@ -235,21 +240,21 @@ public class Whiteboard {
         equipTool(Tool.LINE);
     }
 
-    /**Unequips other tools and equips circle*/
+    /** Activates the circle drawing tool. */
     @FXML
     private void useCircle() {
         unequipTool();
         equipTool(Tool.CIRCLE);
     }
 
-    /**Unequips other tools and equips eraser*/
+    /** Activates the eraser tool. */
     @FXML
     private void useEraser() {
         unequipTool();
         equipTool(Tool.ERASER);
     }
 
-    /**Unequips other tools and equips trash*/
+    /** Clears all children from the whiteboard (like using a trash tool). */
     @FXML
     private void userTrash() {
         whiteboard.getChildren().clear();
