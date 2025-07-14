@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.control.ScrollPane?>
+<VBox styleClass="root-vbox" stylesheets="@../css/whiteboard.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.yashgamerx.cognitive_thought_network_simulation.Whiteboard">
+      <!--   Canvas Block   -->
+      <ScrollPane fx:id="scrollPane"
+                  VBox.vgrow="ALWAYS"
+                  hbarPolicy="AS_NEEDED"
+                  vbarPolicy="AS_NEEDED"
+                  > <!-- Allows mouse-drag to pan -->
+            <Pane fx:id="whiteboard"
+                  onMouseDragged="#handleMouseDragged"
+                  onMousePressed="#handleMousePressed"
+                  onMouseClicked="#handleMouseClicked"
+                  onMouseMoved="#handleMouseMoved"
+                  style="-fx-background-color: lightGrey" />
+      </ScrollPane>
+
+
+      <!--   Options for drawing Block   -->
+      <HBox prefHeight="70" minHeight="70" maxHeight="70" styleClass="item-box">
+
+            <!--      Line      -->
+            <ImageView id="line" onMouseClicked="#useLine" pickOnBounds="true" preserveRatio="true" styleClass="logo">
+                  <Image url="@../images/straight_50dp_000000.png" />
+            </ImageView>
+
+            <!--      Circle      -->
+            <ImageView id="circle" onMouseClicked="#useCircle" pickOnBounds="true" preserveRatio="true" styleClass="logo">
+                  <Image url="@../images/circle_50dp_000000.png" />
+            </ImageView>
+
+            <!--      Eraser      -->
+            <ImageView id="eraser" onMouseClicked="#useEraser" pickOnBounds="true" preserveRatio="true" styleClass="logo">
+                  <Image url="@../images/ink_eraser_50dp_000000.png" />
+            </ImageView>
+
+            <!--      Trash      -->
+            <ImageView id="trash" onMouseClicked="#userTrash" pickOnBounds="true" preserveRatio="true" styleClass="logo">
+                  <Image url="@../images/delete_50dp_000000.png" />
+            </ImageView>
+      </HBox>
+</VBox>

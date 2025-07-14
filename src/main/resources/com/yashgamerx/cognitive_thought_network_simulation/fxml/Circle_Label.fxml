@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import javafx.scene.shape.Ellipse?>
+<StackPane fx:id="stackPane"
+           onMousePressed="#handleMousePressed"
+           onMouseDragged="#handleMouseDragged"
+           onMouseClicked="#handleMouseClicked"
+            stylesheets="@../css/circle_label.css"
+           xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.yashgamerx.cognitive_thought_network_simulation.CircleController">
+    <Ellipse fx:id="ellipse" radiusX="40" radiusY="10" fill="floralwhite" styleClass="ellipse-shape"/>
+    <Label fx:id="label"/>
+</StackPane>

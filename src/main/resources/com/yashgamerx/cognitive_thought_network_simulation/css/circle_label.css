@@ -1,0 +1,10 @@
+
+.ellipse-shape{
+    -fx-stroke-width: 2px;
+    -fx-stroke: black;
+}
+
+.label{
+    -fx-text-fill: black;
+    -fx-font-size: 24px;
+}

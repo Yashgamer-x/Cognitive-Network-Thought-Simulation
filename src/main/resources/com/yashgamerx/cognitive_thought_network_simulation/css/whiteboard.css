@@ -1,0 +1,14 @@
+.root-vbox{
+    -fx-pref-width: 500;
+    -fx-pref-height: 500;
+}
+
+.item-box{
+    -fx-padding: 0 20 0 20;
+    -fx-alignment: center-left;
+}
+
+.logo{
+    -fx-fit-to-width: 50px;
+    -fx-fit-to-height: 50px;
+}
