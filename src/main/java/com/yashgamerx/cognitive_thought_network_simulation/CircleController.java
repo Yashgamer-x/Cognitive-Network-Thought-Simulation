@@ -7,6 +7,9 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Ellipse;
 import lombok.Getter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Handles the visual and interactive behavior of a labeled circle node
  * on the cognitive whiteboard. Supports movement, label binding,
@@ -28,8 +31,12 @@ public class CircleController {
     /** Stores the previous mouse position during drag events. */
     private double lastMouseX, lastMouseY;
 
+    private List<Arrow> arrows;
+
     /** Called automatically by FXMLLoader after component creation. */
-    @FXML private void initialize() {}
+    @FXML private void initialize() {
+        arrows = new ArrayList<>();
+    }
 
     /**
      * Sets the label text and binds the ellipse radius
@@ -105,7 +112,18 @@ public class CircleController {
 
         } else if (currentTool == Tool.ERASER) {
             whiteboard.removeChildrenObject(stackPane);
+            var newArrows = new ArrayList<>(arrows);
+            newArrows.parallelStream().forEach(Arrow::detachCircles);
             stackPane.getChildren().clear();
+            arrows = null;
         }
+    }
+
+    public void addArrow(Arrow arrow) {
+        arrows.add(arrow);
+    }
+
+    public void removeArrow(Arrow arrow) {
+        arrows.remove(arrow);
     }
 }

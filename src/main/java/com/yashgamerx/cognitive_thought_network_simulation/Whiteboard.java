@@ -1,5 +1,6 @@
 package com.yashgamerx.cognitive_thought_network_simulation;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Point2D;
@@ -7,12 +8,17 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.*;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
- * Manages an interactive whiteboard UI that supports drawing arrows, circles,
- * scrolling, and tool selection for cognitive thought network simulations.
+ * Manages an interactive whiteboard UI that supports:
+ * - Drawing and binding arrows between circle nodes
+ * - Placing and resizing labeled circles
+ * - Panning via scroll‐drag
+ * - Tool selection (line, circle, eraser, trash)
  */
 public class Whiteboard {
 
@@ -20,208 +26,326 @@ public class Whiteboard {
     @Getter
     private static Whiteboard instance;
 
-    @FXML private ScrollPane scrollPane;
-    @FXML private Pane whiteboard;
+    /** Scroll pane that wraps the whiteboard canvas for panning. */
+    @FXML
+    private ScrollPane scrollPane;
 
-    /** Currently selected drawing tool. */
+    /** Pane representing the infinite whiteboard canvas. */
+    @FXML
+    private Pane whiteboard;
+
+    /** Currently selected drawing tool (LINE, CIRCLE, ERASER). */
     @Getter
     private Tool currentTool;
 
-    private double lastMouseX, lastMouseY;
+    /** Last recorded mouse X position for drag/pan calculations. */
+    private double lastMouseX;
 
-    /** Indicates if an arrow is actively being drawn. */
-    @Getter
+    /** Last recorded mouse Y position for drag/pan calculations. */
+    private double lastMouseY;
+
+    /** True while an arrow is mid‐draw (start set, end following cursor). */
+    @Getter @Setter
     private boolean arrowing;
 
+    /** Reference to the Arrow being drawn when in LINE mode. */
+    @Setter
     private Arrow currentArrow;
 
-    private final double BUFFER = 200;
-    private final double GROWTH_CHUNK = 1000;
-    private final double MAX_CANVAS_SIZE = 100_000;
+    /** Padding beyond the click point before expanding canvas. */
+    private static final double BUFFER = 200;
 
-    /** Initializes whiteboard properties and sets up instance reference. */
+    /** Increment by which to grow the canvas when needed. */
+    private static final double GROWTH_CHUNK = 1000;
+
+    /** Upper bound on canvas size to prevent unbounded growth. */
+    private static final double MAX_CANVAS_SIZE = 100_000;
+
+    /**
+     * Initializes the whiteboard after FXML loading.
+     * - Sets a large minimum size
+     * - Resets all tool/arrow state
+     * - Registers this instance for global lookup
+     */
     @FXML
     public void initialize() {
         whiteboard.setMinSize(4000, 4000);
-        currentTool = null;
-        arrowing = false;
-        currentArrow = null;
-        instance = this;
+        currentTool   = null;
+        arrowing      = false;
+        currentArrow  = null;
+        instance      = this;
     }
 
     /**
-     * Handles mouse click events based on the selected tool.
+     * Handles mouse clicks on the whiteboard area.
+     * Delegates to specific draw actions based on the current tool.
      *
-     * @param e MouseEvent containing click information
+     * @param e the MouseEvent containing click coordinates
      */
     @FXML
     private void handleMouseClicked(MouseEvent e) {
-        if (currentTool == null) return;
+        if (currentTool == null) {
+            return;
+        }
 
-        var startX = e.getX();
-        var startY = e.getY();
+        double startX = e.getX();
+        double startY = e.getY();
+
         switch (currentTool) {
-            case CIRCLE -> onCircleDraw(startX, startY);
+            case CIRCLE ->
+                    onCircleDraw(startX, startY);
+            default ->
+            {/* other tools handle clicks elsewhere */}
         }
     }
 
+    /**
+     * Binds the start point of the current arrow to the center of a circle.
+     *
+     * @param circleController controller of the circle at arrow’s origin
+     */
     private void bindStartArrow(CircleController circleController) {
-        var stackPane = circleController.getStackPane();
-        var line = currentArrow.getLine();
-        line.startXProperty().bind(stackPane.layoutXProperty().add(stackPane.getWidth() / 2));
-        line.startYProperty().bind(stackPane.layoutYProperty().add(stackPane.getHeight() / 2));
+        StackPane cp = circleController.getStackPane();
+        double halfW = cp.getWidth()  / 2;
+        double halfH = cp.getHeight() / 2;
+
+        currentArrow.getLine()
+                .startXProperty()
+                .bind(cp.layoutXProperty().add(halfW));
+        currentArrow.getLine()
+                .startYProperty()
+                .bind(cp.layoutYProperty().add(halfH));
+        currentArrow.setStartNode(circleController);
     }
 
+    /**
+     * Binds the end point of the current arrow to the center of a circle.
+     *
+     * @param circleController controller of the circle at arrow’s destination
+     */
     private void bindEndArrow(CircleController circleController) {
-        var stackPane = circleController.getStackPane();
-        var line = currentArrow.getLine();
-        line.endXProperty().bind(stackPane.layoutXProperty().add(stackPane.getWidth() / 2));
-        line.endYProperty().bind(stackPane.layoutYProperty().add(stackPane.getHeight() / 2));
+        currentArrow.bindEndNode(circleController);
     }
 
-    /** Starts arrow drawing on the whiteboard and binds its start to a thought circle. */
-    public void startArrowDraw(double startX, double startY, CircleController circleController) {
+    /**
+     * Begins drawing a new arrow from a given point, binding its start to a circle.
+     *
+     * @param startX          x‐coordinate where arrow begins
+     * @param startY          y‐coordinate where arrow begins
+     * @param circleController controller of the circle at arrow’s start
+     */
+    public void startArrowDraw(double startX,
+                               double startY,
+                               CircleController circleController) {
         currentArrow = new Arrow(startX, startY, startX, startY);
         bindStartArrow(circleController);
         whiteboard.getChildren().addFirst(currentArrow);
         arrowing = true;
     }
 
-    /** Sets the transparency behavior of the current arrow. */
-    public void setCurrentArrowTransparency(boolean transparency) {
-        currentArrow.setMouseTransparent(transparency);
+    /**
+     * Toggles whether the arrow under construction is transparent to mouse events.
+     *
+     * @param transparent true to ignore mouse events on the arrow
+     */
+    public void setCurrentArrowTransparency(boolean transparent) {
+        currentArrow.setMouseTransparent(transparent);
     }
 
-    /** Removes a graphical object from the whiteboard. */
+    /**
+     * Removes an object (circle or arrow) from the whiteboard.
+     *
+     * @param object the node to remove
+     */
     public void removeChildrenObject(Object object) {
-        whiteboard.getChildren().remove(object);
+        Platform.runLater(()->whiteboard.getChildren().remove(object));
     }
 
-    /** Ends the arrow drawing and binds its end to a thought circle. */
-    public void endArrowDraw(double endX, double endY, CircleController circleController) {
+    /**
+     * Finishes drawing the current arrow, binds its end to a circle, and clears state.
+     *
+     * @param endX            x‐coordinate where arrow ends
+     * @param endY            y‐coordinate where arrow ends
+     * @param circleController controller of the circle at arrow’s end
+     */
+    public void endArrowDraw(double endX,
+                             double endY,
+                             CircleController circleController) {
         currentArrow.setEnd(endX, endY);
         bindEndArrow(circleController);
         currentArrow = null;
-        arrowing = false;
+        arrowing      = false;
     }
 
+    /**
+     * Creates and places a labeled circle at the click position.
+     * Expands the canvas if the new circle exceeds current bounds.
+     *
+     * @param startX x‐coordinate for the circle’s top‐left
+     * @param startY y‐coordinate for the circle’s top‐left
+     */
     private void onCircleDraw(double startX, double startY) {
         try {
-            FXMLLoader fxmlLoader = new FXMLLoader(Whiteboard.class.getResource("fxml/Circle_Label.fxml"));
-            var stackPane = (StackPane) fxmlLoader.load();
-            var controller = (CircleController) fxmlLoader.getController();
-            if (!TextInputDialogForCircleClass.dialog(controller)) return;
+            FXMLLoader loader = new FXMLLoader(
+                    Whiteboard.class.getResource("fxml/Circle_Label.fxml")
+            );
+            StackPane pane = loader.load();
+            CircleController ctrl = loader.getController();
 
-            // Expand whiteboard if needed
+            // Prompt for label text; if canceled, abort
+            if (!TextInputDialogForCircleClass.dialog(ctrl)) {
+                return;
+            }
+
+            // Expand whiteboard if clicking near the edge
             if (startX + BUFFER > whiteboard.getPrefWidth()) {
-                whiteboard.setPrefWidth(Math.min(MAX_CANVAS_SIZE, startX + BUFFER + GROWTH_CHUNK));
+                whiteboard.setPrefWidth(
+                        Math.min(MAX_CANVAS_SIZE,
+                                startX + BUFFER + GROWTH_CHUNK)
+                );
             }
             if (startY + BUFFER > whiteboard.getPrefHeight()) {
-                whiteboard.setPrefHeight(Math.min(MAX_CANVAS_SIZE, startY + BUFFER + GROWTH_CHUNK));
+                whiteboard.setPrefHeight(
+                        Math.min(MAX_CANVAS_SIZE,
+                                startY + BUFFER + GROWTH_CHUNK)
+                );
             }
 
-            stackPane.setLayoutX(startX);
-            stackPane.setLayoutY(startY);
-            whiteboard.getChildren().add(stackPane);
-        } catch (Exception _) {
+            pane.setLayoutX(startX);
+            pane.setLayoutY(startY);
+            whiteboard.getChildren().add(pane);
+
+        } catch (Exception ex) {
             System.out.println("Unable to load Circle_Label.fxml");
         }
     }
 
-    /** Captures mouse press coordinates for scroll tracking. */
+    /**
+     * Records the mouse position to support panning when drag begins.
+     *
+     * @param e the MouseEvent capturing initial press
+     */
     @FXML
     private void handleMousePressed(MouseEvent e) {
-        if (e.getButton() == MouseButton.MIDDLE || e.getButton() == MouseButton.SECONDARY) {
+        if (e.getButton() == MouseButton.MIDDLE ||
+                e.getButton() == MouseButton.SECONDARY) {
+
             lastMouseX = e.getSceneX();
             lastMouseY = e.getSceneY();
         }
     }
 
+    /**
+     * Calculates and applies scroll deltas based on mouse movement.
+     *
+     * @param x current scene X
+     * @param y current scene Y
+     */
     private void manageScrollOnDrag(double x, double y) {
-        Point2D current = new Point2D(x, y);
-        double deltaX = lastMouseX - current.getX();
-        double deltaY = lastMouseY - current.getY();
-        lastMouseX = current.getX();
-        lastMouseY = current.getY();
+        Point2D curr = new Point2D(x, y);
+        double deltaX = lastMouseX - curr.getX();
+        double deltaY = lastMouseY - curr.getY();
 
-        // Horizontal scroll
-        double scrollableWidth = scrollPane.getContent().getBoundsInLocal().getWidth() - scrollPane.getViewportBounds().getWidth();
-        if (scrollableWidth > 0) {
-            scrollPane.setHvalue(scrollPane.getHvalue() + deltaX / scrollableWidth);
+        lastMouseX = curr.getX();
+        lastMouseY = curr.getY();
+
+        double contentWidth  = scrollPane.getContent()
+                .getBoundsInLocal().getWidth();
+        double viewportWidth = scrollPane.getViewportBounds().getWidth();
+        double contentHeight = scrollPane.getContent()
+                .getBoundsInLocal().getHeight();
+        double viewportHeight= scrollPane.getViewportBounds().getHeight();
+
+        if (contentWidth  > viewportWidth) {
+            scrollPane.setHvalue(
+                    scrollPane.getHvalue() + deltaX / (contentWidth - viewportWidth)
+            );
         }
-
-        // Vertical scroll
-        double scrollableHeight = scrollPane.getContent().getBoundsInLocal().getHeight() - scrollPane.getViewportBounds().getHeight();
-        if (scrollableHeight > 0) {
-            scrollPane.setVvalue(scrollPane.getVvalue() + deltaY / scrollableHeight);
+        if (contentHeight > viewportHeight) {
+            scrollPane.setVvalue(
+                    scrollPane.getVvalue() + deltaY / (contentHeight - viewportHeight)
+            );
         }
     }
 
     /**
-     * Enables scroll behavior when dragging with middle or secondary mouse button.
+     * Handles drag events on the whiteboard; uses middle or right button for panning.
      *
-     * @param e MouseEvent with drag details
+     * @param e the MouseEvent with drag coordinates
      */
     @FXML
     private void handleMouseDragged(MouseEvent e) {
-        if (e.getButton() == MouseButton.MIDDLE || e.getButton() == MouseButton.SECONDARY) {
+        if (e.getButton() == MouseButton.MIDDLE ||
+                e.getButton() == MouseButton.SECONDARY) {
+
             manageScrollOnDrag(e.getSceneX(), e.getSceneY());
         }
     }
 
-    /** Updates current arrow position to follow mouse movement. */
+    /**
+     * Updates the arrow’s end point to follow the mouse while drawing.
+     *
+     * @param e MouseEvent with current pointer location
+     */
     @FXML
     private void handleMouseMoved(MouseEvent e) {
-        if (currentTool == Tool.LINE && arrowing && currentArrow != null) {
+        if (currentTool == Tool.LINE &&
+                arrowing        &&
+                currentArrow   != null) {
+
             currentArrow.setEnd(e.getX(), e.getY());
         }
     }
 
     /**
-     * Retrieves the ImageView associated with a tool from the UI.
+     * Looks up the ImageView icon for a given tool in the main scene.
      *
-     * @param tool tool to look up
-     * @return ImageView node
+     * @param tool enum value of the desired tool icon
+     * @return the ImageView node, or null if not found
      */
     private ImageView imageViewLookup(Tool tool) {
         var scene = MainApplication.getStage().getScene();
         return switch (tool) {
-            case LINE -> (ImageView) scene.lookup("#line");
+            case LINE   -> (ImageView) scene.lookup("#line");
             case CIRCLE -> (ImageView) scene.lookup("#circle");
             case ERASER -> (ImageView) scene.lookup("#eraser");
-            default -> null;
         };
     }
 
-    /** Unequips the current tool and resets its icon scale. */
+    /**
+     * Unequips the current tool, resets its icon scale, and aborts any in-progress draw.
+     */
     private void unequipTool() {
         if (currentTool != null) {
             stopDrawing();
-            var imageView = imageViewLookup(currentTool);
-            imageView.setScaleX(1.0);
-            imageView.setScaleY(1.0);
+            ImageView iv = imageViewLookup(currentTool);
+            iv.setScaleX(1.0);
+            iv.setScaleY(1.0);
         }
     }
 
     /**
-     * Equips the given tool and scales its ImageView icon.
+     * Equips the specified tool, scaling its icon to indicate selection.
+     * Clicking the same tool again will unequip it.
      *
-     * @param tool tool to equip
+     * @param tool the Tool to select
      */
     private void equipTool(Tool tool) {
         if (currentTool == tool) {
             currentTool = null;
             return;
         }
-        var imageView = imageViewLookup(tool);
-        if (imageView != null) {
-            imageView.setScaleX(1.2);
-            imageView.setScaleY(1.2);
+        ImageView iv = imageViewLookup(tool);
+        if (iv != null) {
+            iv.setScaleX(1.2);
+            iv.setScaleY(1.2);
         }
         currentTool = tool;
     }
 
-    /** Cancels arrow drawing and removes the active arrow from whiteboard. */
+    /**
+     * Cancels any arrow currently being drawn and removes it from the board.
+     */
     private void stopDrawing() {
         if (currentTool == Tool.LINE) {
             arrowing = false;
@@ -254,7 +378,7 @@ public class Whiteboard {
         equipTool(Tool.ERASER);
     }
 
-    /** Clears all children from the whiteboard (like using a trash tool). */
+    /** Clears all nodes from the whiteboard, equivalent to a “trash” action. */
     @FXML
     private void userTrash() {
         whiteboard.getChildren().clear();
