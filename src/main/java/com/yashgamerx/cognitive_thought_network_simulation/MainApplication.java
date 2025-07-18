@@ -1,5 +1,6 @@
 package com.yashgamerx.cognitive_thought_network_simulation;
 
+import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtUpdater;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -23,7 +24,9 @@ public class MainApplication extends Application {
         }
         stage.setTitle("Cognitive Thought Network Simulation");
         stage.setScene(scene);
+        ThoughtUpdater.startService();
         stage.show();
+        stage.setOnCloseRequest(_ -> ThoughtUpdater.stopService());
     }
 
     public static void main(String[] args) {
