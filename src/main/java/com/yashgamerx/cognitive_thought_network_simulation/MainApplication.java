@@ -18,6 +18,7 @@ public class MainApplication extends Application {
             FXMLLoader fxmlLoader = new FXMLLoader(Whiteboard.class.getResource("fxml/Whiteboard.fxml"));
             scene = new Scene(fxmlLoader.load(), 320, 240);
         } catch (Exception e) {
+            e.printStackTrace();
             System.out.println("Unable to load Whiteboard.fxml");
         }
         stage.setTitle("Cognitive Thought Network Simulation");

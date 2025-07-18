@@ -1,5 +1,7 @@
 package com.yashgamerx.cognitive_thought_network_simulation;
 
+import com.yashgamerx.cognitive_thought_network_simulation.individuals.Arrow;
+import com.yashgamerx.cognitive_thought_network_simulation.individuals.CircleController;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
