@@ -1,5 +1,8 @@
-package com.yashgamerx.cognitive_thought_network_simulation;
+package com.yashgamerx.cognitive_thought_network_simulation.individuals;
 
+import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
+import com.yashgamerx.cognitive_thought_network_simulation.Tool;
+import com.yashgamerx.cognitive_thought_network_simulation.Whiteboard;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
@@ -26,7 +29,8 @@ public class CircleController {
     @FXML private Ellipse ellipse;
 
     /** Text label displayed in the circle. */
-    @FXML private Label label;
+    @Getter @FXML
+    private Label label;
 
     /** Stores the previous mouse position during drag events. */
     private double lastMouseX, lastMouseY;
@@ -46,6 +50,7 @@ public class CircleController {
      */
     public void setLabel(String label) {
         this.label.setText(label);
+        ThoughtManager.createThought(label);
         ellipse.radiusXProperty().bind(this.label.widthProperty());
         ellipse.radiusYProperty().bind(this.label.heightProperty());
     }
@@ -116,6 +121,7 @@ public class CircleController {
             newArrows.parallelStream().forEach(Arrow::detachCircles);
             stackPane.getChildren().clear();
             arrows = null;
+            ThoughtManager.removeThought(label.getText());
         }
     }
 
