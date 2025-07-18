@@ -14,7 +14,7 @@ import lombok.Setter;
 
 /**
  * Represents a directed arrow on the whiteboard.
- *
+ * <br>
  * The arrow consists of a straight Line (shaft) and a triangular Polygon (head).
  * It can bind its endpoints dynamically to CircleController nodes, so that
  * the arrow tip always touches the boundary of an ellipse shape.
@@ -64,7 +64,7 @@ public class Arrow extends Group {
 
         // Let clicks pass through unless eraser is active
         setMouseTransparent(true);
-        setOnMousePressed(_ -> detachThis());
+        setOnMousePressed(_ -> detachCircles());
     }
 
     /**
@@ -72,18 +72,12 @@ public class Arrow extends Group {
      * Removes itself from both circle's arrow lists.
      */
     public void detachCircles() {
-        detachThis();
-        startNode.removeArrow(this);
-        endNode.removeArrow(this);
-    }
-
-    /**
-     * Internal helper that removes this arrow from the whiteboard
-     * when the current tool is set to ERASER.
-     */
-    private void detachThis() {
-        if (Whiteboard.getInstance().getCurrentTool() == Tool.ERASER) {
+        if(Whiteboard.getInstance().getCurrentTool() == Tool.ERASER){
             Whiteboard.getInstance().removeChildrenObject(this);
+            startNode.removeOutgoingArrow(this);
+            endNode.removeIncomingArrow(this);
+            ThoughtManager.disconnectThought(startNode.getLabel().getText(), endNode.getLabel().getText());
+            startNode = endNode = null;
         }
     }
 
@@ -162,8 +156,8 @@ public class Arrow extends Group {
         endY.addListener((_, _, _) -> updateArrowHead());
 
         // Register this arrow with both circles
-        endNode.addArrow(this);
-        startNode.addArrow(this);
+        startNode.addOutgoingArrow(this);
+        endNode.addIncomingArrow(this);
 
         ThoughtManager.connectThought(startNode.getLabel().getText(), endNode.getLabel().getText());
     }
@@ -200,18 +194,6 @@ public class Arrow extends Group {
         Polygon head = new Polygon(x1, y1, x2, y2, x3, y3);
         head.setFill(Color.BLACK);
         return head;
-    }
-
-    /**
-     * Updates the starting coordinates of the arrow shaft.
-     *
-     * @param x new start x-coordinate
-     * @param y new start y-coordinate
-     */
-    public void setStart(double x, double y) {
-        line.setStartX(x);
-        line.setStartY(y);
-        updateArrowHead();
     }
 
     /**
