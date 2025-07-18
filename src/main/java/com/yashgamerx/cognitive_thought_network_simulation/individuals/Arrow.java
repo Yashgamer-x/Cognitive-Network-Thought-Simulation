@@ -1,5 +1,8 @@
-package com.yashgamerx.cognitive_thought_network_simulation;
+package com.yashgamerx.cognitive_thought_network_simulation.individuals;
 
+import com.yashgamerx.cognitive_thought_network_simulation.Tool;
+import com.yashgamerx.cognitive_thought_network_simulation.Whiteboard;
+import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.DoubleBinding;
 import javafx.scene.Group;
@@ -54,14 +57,14 @@ public class Arrow extends Group {
         getChildren().addAll(line, arrowHead);
 
         // Redraw the arrowhead whenever the line moves
-        line.startXProperty().addListener((_,__,___) -> updateArrowHead());
-        line.startYProperty().addListener((_,__,___) -> updateArrowHead());
-        line.endXProperty().addListener((_,__,___) -> updateArrowHead());
-        line.endYProperty().addListener((_,__,___) -> updateArrowHead());
+        line.startXProperty().addListener((_,_,_) -> updateArrowHead());
+        line.startYProperty().addListener((_,_,_) -> updateArrowHead());
+        line.endXProperty().addListener((_,_,_) -> updateArrowHead());
+        line.endYProperty().addListener((_,_,_) -> updateArrowHead());
 
         // Let clicks pass through unless eraser is active
         setMouseTransparent(true);
-        setOnMousePressed(_event -> detachThis());
+        setOnMousePressed(_ -> detachThis());
     }
 
     /**
@@ -155,12 +158,14 @@ public class Arrow extends Group {
         line.endYProperty().bind(endY);
 
         // 5) Ensure the arrowhead follows binding updates
-        endX.addListener((__, oldVal, newVal) -> updateArrowHead());
-        endY.addListener((__, oldVal, newVal) -> updateArrowHead());
+        endX.addListener((_, _, _) -> updateArrowHead());
+        endY.addListener((_, _, _) -> updateArrowHead());
 
         // Register this arrow with both circles
         endNode.addArrow(this);
         startNode.addArrow(this);
+
+        ThoughtManager.connectThought(startNode.getLabel().getText(), endNode.getLabel().getText());
     }
 
     /**
