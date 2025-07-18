@@ -52,6 +52,15 @@ public class ThoughtManager {
         storage.getAssociationEdgeList().add(associationEdge);
     }
 
+
+    public static void disconnectThought(String thoughtNameA, String thoughtNameB) {
+        var storage = MemoryStorageArea.getInstance();
+        var thought1 = storage.getThoughtNodeMap().get(thoughtNameA);
+        var thought2 = storage.getThoughtNodeMap().get(thoughtNameB);
+        var associationEdge = thought1.getConnections().remove(thought2);
+        storage.getAssociationEdgeList().remove(associationEdge);
+    }
+
     /**
      * Removes the thought with the specified name from storage.
      * Any existing associations to or from this thought remain in the list,
@@ -60,10 +69,14 @@ public class ThoughtManager {
      * @param thoughtName the unique identifier of the thought to remove
      */
     public static void removeThought(String thoughtName) {
-        MemoryStorageArea
-                .getInstance()
-                .getThoughtNodeMap()
-                .remove(thoughtName);
+        var storage = MemoryStorageArea.getInstance();
+        var thoughtNode = storage
+                .getThoughtNodeMap().remove(thoughtName);
+        thoughtNode
+                .getConnections()
+                .values()
+                .parallelStream()
+                .forEach(associationEdge -> storage.getAssociationEdgeList().remove(associationEdge));
     }
 
     /**
