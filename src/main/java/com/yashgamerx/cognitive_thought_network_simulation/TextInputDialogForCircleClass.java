@@ -1,39 +1,61 @@
 package com.yashgamerx.cognitive_thought_network_simulation;
 
+import com.yashgamerx.cognitive_thought_network_simulation.individuals.CircleController;
+import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
 import javafx.scene.control.TextInputDialog;
 
 import java.util.Optional;
 
+/**
+ * Utility class for prompting the user to enter a thought name via a dialog,
+ * validating it, and applying it to a CircleController label.
+ */
 public class TextInputDialogForCircleClass {
 
-    public static boolean dialog(CircleController circleController){
-        // 1. Create a TextInputDialog instance
+    /**
+     * Displays an input dialog for the user to enter a thought name,
+     * checks for cancellation or duplicate thoughts, and then sets the label
+     * on the provided CircleController if valid.
+     *
+     * @param circleController the controller whose label will be updated
+     * @return true if a new, non‐duplicate name was entered and applied;
+     *         false if the dialog was cancelled or the thought already exists
+     */
+    public static boolean dialog(CircleController circleController) {
+        // 1. Show the text input dialog and get the user's input
         Optional<String> result = getString();
 
-        // 4. Process the result
-        result.ifPresent(name -> { // This lambda executes only if a value is present (OK was clicked)
+        // 2. If the user clicked Cancel or entered a duplicate thought name, abort
+        //    - result.isEmpty(): user cancelled
+        //    - result.isPresent() && ThoughtManager.thoughtExists(...): duplicate
+        if (result.isEmpty() || ThoughtManager.thoughtExists(result.get())) {
+            System.out.println("Dialog was cancelled or thought already exists.");
+            return false;
+        }
+
+        // 3. If we have a valid new name, update the CircleController's label
+        result.ifPresent(name -> {
             circleController.setLabel(name);
             System.out.println("User entered: " + name);
         });
 
-        // If you need to explicitly check for cancellation:
-        if (result.isEmpty()) {
-            System.out.println("Dialog was cancelled.");
-            return false;
-        }
         return true;
     }
 
+    /**
+     * Builds and displays a TextInputDialog configured for entering a thought name.
+     * Uses a default value in the input field and sets title, header, and content text.
+     *
+     * @return an Optional containing the entered string if OK was clicked;
+     *         an empty Optional if Cancel was clicked
+     */
     private static Optional<String> getString() {
-        var dialog = new TextInputDialog("Default Value"); // Optional: set a default value
-
-        // 2. Set dialog properties (optional but recommended for clarity)
+        TextInputDialog dialog = new TextInputDialog("Default Value");
         dialog.setTitle("Input Required");
-        dialog.setHeaderText("Please enter Thought Name:"); // Larger text above the input field
-        dialog.setContentText("Name:"); // Text next to the input field
+        dialog.setHeaderText("Please enter Thought Name:");
+        dialog.setContentText("Name:");
 
-        // 3. Show the dialog and wait for user input
-        // showAndWait() returns an Optional<String>
+        // showAndWait() blocks until the user closes the dialog
         return dialog.showAndWait();
     }
 }
