@@ -77,7 +77,7 @@
                         <id>default-cli</id>
                         <configuration>
                             <mainClass>
-                                com.yashgamerx.cognitive_thought_network_simulation/com.yashgamerx.cognitive_thought_network_simulation.Whiteboard
+                                com.yashgamerx.cognitive_thought_network_simulation.MainApplication
                             </mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>
