@@ -1,21 +1,31 @@
 package com.yashgamerx.cognitive_thought_network_simulation.manager;
 
+import com.yashgamerx.cognitive_thought_network_simulation.individuals.CircleController;
 import com.yashgamerx.cognitive_thought_network_simulation.individuals.ThoughtNode;
 import com.yashgamerx.cognitive_thought_network_simulation.individuals.AssociationEdge;
 import com.yashgamerx.cognitive_thought_network_simulation.storage.MemoryStorageArea;
 
 /**
- * Utility class for managing ThoughtNode instances and their associations
- * within the MemoryStorageArea. Provides methods to create, remove,
- * query, and connect thoughts by name.
+ * Central static manager for ThoughtNode lifecycle and network topology.
+ *
+ * <p>Provides convenience methods for:
+ * <ul>
+ *   <li>Creating and registering new thoughts</li>
+ *   <li>Checking existence of thoughts</li>
+ *   <li>Connecting and disconnecting thoughts via AssociationEdges</li>
+ *   <li>Removing thoughts and associated edges</li>
+ *   <li>Activating thoughts by name with default energy</li>
+ * </ul>
+ *
+ * <p>All interactions are performed via the global {@link MemoryStorageArea} singleton.
  */
 public class ThoughtManager {
 
     /**
-     * Checks whether a thought with the given name exists in storage.
+     * Checks whether a thought with the given name exists in memory.
      *
-     * @param thoughtName the unique identifier of the thought
-     * @return true if a ThoughtNode with the specified name is present; false otherwise
+     * @param thoughtName the name identifier to look up
+     * @return true if a ThoughtNode is mapped; false otherwise
      */
     public static boolean thoughtExists(String thoughtName) {
         return MemoryStorageArea
@@ -25,89 +35,97 @@ public class ThoughtManager {
     }
 
     /**
-     * Connects two existing thoughts by creating an AssociationEdge
-     * from the first thought to the second thought.
-     * <p>
-     * If either thought is missing or they are already connected,
-     * this method returns without side effects.
+     * Connects two thoughts by creating a directed {@link AssociationEdge}
+     * from the first to the second.
      *
-     * @param thoughtNames a two-element array where:
-     *                     [0] is the source thought name,
-     *                     [1] is the target thought name
+     * <p>Does nothing if:
+     * <ul>
+     *   <li>Either node does not exist</li>
+     *   <li>The two nodes are already connected</li>
+     * </ul>
+     *
+     * @param thoughtNames an array with [0]=source and [1]=target thought names
      */
     public static void connectThought(String... thoughtNames) {
         var storage = MemoryStorageArea.getInstance();
-        ThoughtNode thought1 = storage.getThoughtNodeMap().get(thoughtNames[0]);
-        ThoughtNode thought2 = storage.getThoughtNodeMap().get(thoughtNames[1]);
+        var thought1 = storage.getThoughtNodeMap().get(thoughtNames[0]);
+        var thought2 = storage.getThoughtNodeMap().get(thoughtNames[1]);
 
-        // Skip if either thought is null or already connected
-        if (thought1 == null || thought2 == null
-                || thought1.getConnections().containsKey(thought2)) {
+        if (thought1 == null || thought2 == null ||
+                thought1.getConnections().containsKey(thought2)) {
             return;
         }
 
-        // Create new association and register it
-        AssociationEdge associationEdge = new AssociationEdge();
-        thought1.getConnections().put(thought2, associationEdge);
-        storage.getAssociationEdgeList().add(associationEdge);
+        var edge = new AssociationEdge();
+        thought1.getConnections().put(thought2, edge);
+        storage.getAssociationEdgeList().add(edge);
     }
 
-
+    /**
+     * Removes the association between two named thoughts if present.
+     * Also removes the {@link AssociationEdge} from the global list.
+     *
+     * @param thoughtNameA the source thought name
+     * @param thoughtNameB the target thought name
+     */
     public static void disconnectThought(String thoughtNameA, String thoughtNameB) {
         var storage = MemoryStorageArea.getInstance();
         var thought1 = storage.getThoughtNodeMap().get(thoughtNameA);
         var thought2 = storage.getThoughtNodeMap().get(thoughtNameB);
-        var associationEdge = thought1.getConnections().remove(thought2);
-        storage.getAssociationEdgeList().remove(associationEdge);
+
+        if (thought1 != null && thought2 != null) {
+            var edge = thought1.getConnections().remove(thought2);
+            if (edge != null) {
+                storage.getAssociationEdgeList().remove(edge);
+            }
+        }
     }
 
     /**
-     * Removes the thought with the specified name from storage.
-     * Any existing associations to or from this thought remain in the list,
-     * but the node itself is no longer retrievable.
+     * Removes a thought by name. Also removes all edges outbound from it.
+     * Inbound connections pointing to this node are not removed.
      *
-     * @param thoughtName the unique identifier of the thought to remove
+     * @param thoughtName the name of the thought to delete
      */
     public static void removeThought(String thoughtName) {
         var storage = MemoryStorageArea.getInstance();
-        var thoughtNode = storage
-                .getThoughtNodeMap().remove(thoughtName);
-        thoughtNode
-                .getConnections()
-                .values()
-                .parallelStream()
-                .forEach(associationEdge -> storage.getAssociationEdgeList().remove(associationEdge));
-    }
+        var thoughtNode = storage.getThoughtNodeMap().remove(thoughtName);
 
-    /**
-     * Creates a new ThoughtNode with the given name and stores it.
-     * If a thought with the same name already exists, no action is taken.
-     *
-     * @param thoughtName the unique identifier for the new thought
-     */
-    public static void createThought(String thoughtName) {
-        var storage = MemoryStorageArea.getInstance();
-        if (storage.getThoughtNodeMap().containsKey(thoughtName)) {
-            return;
+        if (thoughtNode != null) {
+            thoughtNode.getConnections()
+                    .values()
+                    .parallelStream()
+                    .forEach(edge -> storage.getAssociationEdgeList().remove(edge));
         }
-        ThoughtNode thoughtNode = new ThoughtNode(thoughtName);
-        storage.getThoughtNodeMap().put(thoughtName, thoughtNode);
     }
 
     /**
-     * Activates the thought by name with a default intensity.
-     * This method is public and is used internally to trigger
-     * activation logic on a ThoughtNode.
+     * Registers a new {@link ThoughtNode} and associates it with a UI controller.
+     * If a node with this name already exists, no action is taken.
      *
-     * @param thoughtName the unique identifier of the thought to activate
+     * @param thoughtName      unique name for the new thought
+     * @param circleController associated UI component
+     */
+    public static void createThought(String thoughtName, CircleController circleController) {
+        var storage = MemoryStorageArea.getInstance();
+        if (storage.getThoughtNodeMap().containsKey(thoughtName)) return;
+
+        var node = new ThoughtNode(thoughtName, circleController);
+        storage.getThoughtNodeMap().put(thoughtName, node);
+    }
+
+    /**
+     * Triggers activation of a thought by name using a default energy value.
+     * This causes potential visual feedback and propagation logic.
+     *
+     * @param thoughtName the name of the thought to activate
      */
     public static void activateThought(String thoughtName) {
-        ThoughtNode thoughtNode =
-                MemoryStorageArea.getInstance()
-                        .getThoughtNodeMap()
-                        .get(thoughtName);
-        if (thoughtNode != null) {
-            thoughtNode.activate(1.0);
+        var node = MemoryStorageArea.getInstance()
+                .getThoughtNodeMap()
+                .get(thoughtName);
+        if (node != null) {
+            node.activate(1.0);
         }
     }
 }
