@@ -14,32 +14,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Controls a labeled circle node on the cognitive whiteboard.
+ * Controller for a labeled circle node on the cognitive whiteboard.
  *
- * <p>This controller manages:
+ * <p>This class handles:
  * <ul>
- *   <li>Binding and updating the label and ellipse size</li>
+ *   <li>Binding and resizing the Ellipse to match its Label text</li>
  *   <li>Drag‐and‐drop movement when no tool is active</li>
- *   <li>Integration with LINE and ERASER tools for drawing or deleting</li>
- *   <li>Tracking and disconnecting associated Arrow objects</li>
- *   <li>Distinguishes incoming vs. outgoing arrows for directional awareness</li>
+ *   <li>Click interactions for LINE, ERASER, or no‐tool (activation)</li>
+ *   <li>Tracking incoming and outgoing Arrow connections</li>
+ *   <li>Safe suppression of click events immediately after a drag</li>
  * </ul>
  */
 public class CircleController {
 
-    /** Container for the ellipse and label graphics. */
-    @Getter @FXML private StackPane stackPane;
+    /** Flag set when a drag motion is detected, to swallow the subsequent click. */
+    private boolean dragDetected;
 
-    /** Ellipse shape forming the circle background. */
-    @Getter @FXML private Ellipse ellipse;
+    /** Container holding the ellipse shape and label node. */
+    @Getter @FXML
+    private StackPane stackPane;
 
-    /** Text label displayed at the center of the circle. */
-    @Getter @FXML private Label label;
+    /** Ellipse graphic that serves as the circle background. */
+    @Getter @FXML
+    private Ellipse ellipse;
 
-    /** Last recorded mouse X coordinate during dragging. */
+    /** Centered text label displayed on the circle. */
+    @Getter @FXML
+    private Label label;
+
+    /** Last recorded X coordinate during a drag operation. */
     private double lastMouseX;
 
-    /** Last recorded mouse Y coordinate during dragging. */
+    /** Last recorded Y coordinate during a drag operation. */
     private double lastMouseY;
 
     /** List of arrows pointing into this node (incoming edges). */
@@ -49,47 +55,51 @@ public class CircleController {
     private List<Arrow> outgoingArrows;
 
     /**
-     * Initializes the controller after FXML loading.
-     * Sets up arrow tracking lists.
+     * Called once by FXMLLoader after all @FXML fields are injected.
+     * Initializes arrow‐tracking lists and resets the drag flag.
      */
     @FXML
     private void initialize() {
         incomingArrows = new ArrayList<>();
         outgoingArrows = new ArrayList<>();
+        dragDetected = false;
     }
 
     /**
-     * Sets the label text and binds the ellipse dimensions
-     * to dynamically wrap the text label. Also registers the
-     * thought name in the system memory.
+     * Sets or updates this circle’s label text and registers the thought.
+     * Also binds the ellipse radii so the circle always wraps the text.
      *
-     * @param text the new label to apply
+     * @param text the new label string to display
      */
     public void setLabel(String text) {
         label.setText(text);
-        ThoughtManager.createThought(text);
+        // Create/register thought in storage and associate this controller
+        ThoughtManager.createThought(text, this);
+        // Bind ellipse size to label dimensions
         ellipse.radiusXProperty().bind(label.widthProperty());
         ellipse.radiusYProperty().bind(label.heightProperty());
     }
 
     /**
-     * Records the starting position for dragging when no tool is selected.
+     * Captures the mouse-down position if no tool is selected,
+     * resetting the drag detection flag.
      *
-     * @param e mouse press event
+     * @param e the mouse press event
      */
     @FXML
     private void handleMousePressed(MouseEvent e) {
         if (Whiteboard.getInstance().getCurrentTool() == null) {
             lastMouseX = e.getSceneX();
             lastMouseY = e.getSceneY();
+            dragDetected = false;
         }
     }
 
     /**
-     * Moves the circle node on drag, only when the active tool is null.
-     * Computes delta movement based on the previous mouse position.
+     * Moves the circle by the drag delta if no tool is active.
+     * Sets dragDetected to true once pixel movement exceeds zero.
      *
-     * @param e mouse drag event
+     * @param e the mouse drag event
      */
     @FXML
     private void handleMouseDragged(MouseEvent e) {
@@ -100,27 +110,38 @@ public class CircleController {
             double deltaX = currentX - lastMouseX;
             double deltaY = currentY - lastMouseY;
 
+            // Translate the StackPane by the drag offset
             stackPane.setLayoutX(stackPane.getLayoutX() + deltaX);
             stackPane.setLayoutY(stackPane.getLayoutY() + deltaY);
 
             lastMouseX = currentX;
             lastMouseY = currentY;
+            dragDetected = true;
         }
     }
 
     /**
-     * Performs tool-based click handling:
+     * Handles click events according to the active tool:
      * <ul>
-     *   <li>LINE: initiates or completes an arrow draw</li>
-     *   <li>ERASER: deletes this circle and its arrows</li>
+     *   <li>Suppress the click if a drag was just detected</li>
+     *   <li>LINE: start or finish drawing an Arrow</li>
+     *   <li>ERASER: delete this circle and detach its arrows</li>
+     *   <li>null tool: activate the thought (flash & energy propagation)</li>
      * </ul>
      */
     @FXML
     private void handleMouseClicked() {
+        // If this click immediately followed a drag, ignore it
+        if (dragDetected) {
+            dragDetected = false;
+            return;
+        }
+
         Whiteboard whiteboard = Whiteboard.getInstance();
         Tool currentTool = whiteboard.getCurrentTool();
 
         if (currentTool == Tool.LINE) {
+            // Compute the geometric center of the circle
             double centerX = stackPane.getLayoutX() + stackPane.getWidth() / 2;
             double centerY = stackPane.getLayoutY() + stackPane.getHeight() / 2;
 
@@ -132,22 +153,31 @@ public class CircleController {
             }
 
         } else if (currentTool == Tool.ERASER) {
+            // Remove the visual node
             whiteboard.removeChildrenObject(stackPane);
 
-            // Detach all associated arrows safely in parallel
-            new ArrayList<>(incomingArrows).parallelStream().forEach(Arrow::detachCircles);
-            new ArrayList<>(outgoingArrows).parallelStream().forEach(Arrow::detachCircles);
+            // Detach all arrows safely
+            new ArrayList<>(incomingArrows)
+                    .parallelStream()
+                    .forEach(Arrow::detachCircles);
+            new ArrayList<>(outgoingArrows)
+                    .parallelStream()
+                    .forEach(Arrow::detachCircles);
 
             stackPane.getChildren().clear();
             incomingArrows = outgoingArrows = null;
 
             ThoughtManager.removeThought(label.getText());
+
+        } else if (currentTool == null) {
+            // No tool => activate this thought
+            // (fires energy propagation & triggers visual flash)
+            ThoughtManager.activateThought(label.getText());
         }
     }
 
     /**
-     * Adds an incoming arrow reference to this node.
-     * Typically called when another node targets this one.
+     * Registers an incoming Arrow that terminates at this circle.
      *
      * @param arrow the Arrow directed toward this node
      */
@@ -156,8 +186,7 @@ public class CircleController {
     }
 
     /**
-     * Adds an outgoing arrow reference from this node.
-     * Typically called when this node targets another.
+     * Registers an outgoing Arrow that originates from this circle.
      *
      * @param arrow the Arrow originating from this node
      */
@@ -166,7 +195,7 @@ public class CircleController {
     }
 
     /**
-     * Removes an incoming arrow reference.
+     * Removes a previously registered incoming Arrow.
      *
      * @param arrow the Arrow to detach
      */
@@ -175,7 +204,7 @@ public class CircleController {
     }
 
     /**
-     * Removes an outgoing arrow reference.
+     * Removes a previously registered outgoing Arrow.
      *
      * @param arrow the Arrow to detach
      */
