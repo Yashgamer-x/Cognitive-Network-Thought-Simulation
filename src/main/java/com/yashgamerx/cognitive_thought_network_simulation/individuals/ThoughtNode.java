@@ -1,22 +1,43 @@
 package com.yashgamerx.cognitive_thought_network_simulation.individuals;
 
+import com.yashgamerx.cognitive_thought_network_simulation.manager.FlashManager;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Represents a node in the cognitive thought network.
+ * Represents a node in the cognitive thought network with thread-safe state
+ * updates and UI feedback.
  *
- * <p>Each ThoughtNode holds an activation energy value and a dynamic
- * threshold. When activated above its threshold, the node fires:
- * it propagates energy to connected nodes through AssociationEdges,
- * reinforces those edges, and resets its own energy. The node also
- * supports passive decay of energy and threshold recovery over time.
+ * <p>Each ThoughtNode holds:
+ * <ul>
+ *   <li>an activation energy value and a dynamic firing threshold</li>
+ *   <li>a map of outgoing {@link AssociationEdge} connections</li>
+ *   <li>a {@link CircleController} for UI interaction and visual flashes</li>
+ *   <li>a {@link Lock} to synchronize concurrent activate/update calls</li>
+ * </ul>
+ *
+ * <p>When activated above its threshold, the node:
+ * <ol>
+ *   <li>resets or accumulates energy</li>
+ *   <li>propagates energy to connected nodes after a short delay</li>
+ *   <li>reinforces each outgoing edge based on pre/post energy</li>
+ * </ol>
+ *
+ * <p>Additionally, calling {@link #update()} applies passive decay to
+ * its energy and recovers its threshold over time.
  */
 @Getter
 public class ThoughtNode {
+
+    /** Guards updates to energy (and any future shared state). */
+    private final Lock stateLock;
 
     /** Unique identifier for this thought node. */
     private final String name;
@@ -25,97 +46,116 @@ public class ThoughtNode {
     @Setter
     private double energy;
 
-    /** Minimum threshold value used during recovery (base floor). */
+    /** Base threshold floor used during threshold recovery. */
     private final double baseThreshold;
 
-    /** Dynamic threshold that input energy must meet or exceed to fire. */
+    /** Dynamic threshold that must be reached to fire. */
     @Setter
     private double threshold;
 
     /** Outgoing connections from this node to others with associated edges. */
     private final Map<ThoughtNode, AssociationEdge> connections;
 
+    /** Controller for the UI element representing this thought. */
+    private final CircleController circleController;
+
     /**
-     * Constructs a ThoughtNode with the given name.
-     * Uses default threshold = 0.5 and baseThreshold = 0.3.
+     * Constructs a ThoughtNode with default threshold = 0.5 and baseThreshold = 0.3.
      *
-     * @param name unique identifier for the node
+     * @param name             the unique name of this node
+     * @param circleController the UI controller tied to this node's ellipse
      */
-    public ThoughtNode(String name) {
+    public ThoughtNode(String name, CircleController circleController) {
         this.name = name;
         this.energy = 0.0;
         this.baseThreshold = 0.3;
         this.threshold = 0.5;
         this.connections = new HashMap<>();
+        this.circleController = circleController;
+        this.stateLock = new ReentrantLock();
     }
 
     /**
-     * Constructs a ThoughtNode with the given name and custom threshold.
-     * Uses default baseThreshold = 0.3.
+     * Constructs a ThoughtNode with a custom initial threshold.
+     * baseThreshold remains at 0.3.
      *
-     * @param name      unique identifier for the node
-     * @param threshold initial firing threshold for activation
+     * @param name             the unique name of this node
+     * @param threshold        the initial firing threshold
+     * @param circleController the UI controller tied to this node's ellipse
      */
-    public ThoughtNode(String name, double threshold) {
+    public ThoughtNode(String name, double threshold, CircleController circleController) {
         this.name = name;
         this.energy = 0.0;
         this.baseThreshold = 0.3;
         this.threshold = threshold;
         this.connections = new HashMap<>();
+        this.circleController = circleController;
+        this.stateLock = new ReentrantLock();
     }
 
     /**
-     * Activates the node by adding input energy and, if the total
-     * exceeds the threshold, fires the node:
-     * <ol>
-     *   <li>Resets this energy to zero</li>
-     *   <li>Propagates energy to each connected node:
-     *       propagatedEnergy = inputEnergy * edge.weight * edge.decay</li>
-     *   <li>Reinforces each AssociationEdge based on pre/post energy</li>
-     * </ol>
+     * Activates the node by adding input energy. Immediately flashes
+     * the associated ellipse green, then after 0.6 seconds propagates
+     * activation to connected nodes if the threshold is exceeded.
+     * Reinforces each edge based on pre/post energy.
      *
-     * @param inputEnergy the amount of energy to add and potentially fire with
+     * @param inputEnergy the amount of energy to add and possibly fire with
      */
     public void activate(double inputEnergy) {
-        this.energy += inputEnergy;
-        System.out.println("ThoughtNode " + this.name + " is now activated");
-
-        if (this.energy >= this.threshold) {
-            // Reset energy before propagation
-            this.energy = 0.0;
-
-            // Propagate activation through each outgoing connection
-            for (Map.Entry<ThoughtNode, AssociationEdge> entry : connections.entrySet()) {
-                ThoughtNode target = entry.getKey();
-                AssociationEdge edge = entry.getValue();
-
-                double propagatedEnergy = inputEnergy * edge.getWeight() * edge.getDecay();
-                target.activate(propagatedEnergy);
-
-                // Strengthen the association based on activation levels
-                edge.reinforce(inputEnergy, propagatedEnergy);
-            }
+        // Thread-safe energy accumulation
+        stateLock.lock();
+        try {
+            energy += inputEnergy;
+        } finally {
+            stateLock.unlock();
         }
+
+        System.out.println("ThoughtNode " + this.name + " is now activated");
+        FlashManager.flashGreen(circleController.getEllipse());
+
+        // Delay propagation to simulate a processing pause
+        PauseTransition delay = new PauseTransition(Duration.seconds(0.6));
+        delay.setOnFinished(_ -> {
+            if (energy >= threshold) {
+                // Propagate through each outgoing connection
+                for (Map.Entry<ThoughtNode, AssociationEdge> entry : connections.entrySet()) {
+                    ThoughtNode target = entry.getKey();
+                    AssociationEdge edge = entry.getValue();
+
+                    double propagatedEnergy = inputEnergy * edge.getWeight() * edge.getDecay();
+                    target.activate(propagatedEnergy);
+
+                    edge.reinforce(inputEnergy, propagatedEnergy);
+                }
+            }
+        });
+        delay.play();
     }
 
     /**
-     * Applies passive energy decay and threshold recovery:
+     * Applies passive decay to the node's energy and gradual recovery
+     * of its threshold:
      * <ul>
-     *   <li>Reduces energy by 10% if above 0.01, otherwise sets to 0</li>
-     *   <li>Reduces threshold by 5% each call, not dropping below baseThreshold</li>
+     *   <li>If energy &gt; 0.01, reduce by 10%; otherwise zero it out</li>
+     *   <li>Lower threshold by 5% but not below baseThreshold</li>
      * </ul>
-     * Logs the updated state to the console.
+     * This method is thread-safe for energy updates.
      */
     public void update() {
         double decayFactor = 0.9;
 
-        if (energy > 0.01) {
-            energy *= decayFactor;
-        } else {
-            energy = 0.0;
+        stateLock.lock();
+        try {
+            if (energy > 0.01) {
+                energy *= decayFactor;
+            } else {
+                energy = 0.0;
+            }
+        } finally {
+            stateLock.unlock();
         }
 
-        // Recover threshold gradually toward baseThreshold
+        // Threshold recovery outside the lock since threshold is single-writer
         threshold = Math.max(baseThreshold, threshold * 0.95);
 
         System.out.println("ThoughtNode " + this.name
