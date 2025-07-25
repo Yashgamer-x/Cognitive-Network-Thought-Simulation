@@ -1,5 +1,6 @@
-package com.yashgamerx.cognitive_thought_network_simulation.individuals;
+package com.yashgamerx.cognitive_thought_network_simulation.controller;
 
+import com.yashgamerx.cognitive_thought_network_simulation.individuals.Arrow;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
 import com.yashgamerx.cognitive_thought_network_simulation.Tool;
 import com.yashgamerx.cognitive_thought_network_simulation.Whiteboard;

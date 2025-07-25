@@ -1,6 +1,6 @@
 package com.yashgamerx.cognitive_thought_network_simulation;
 
-import com.yashgamerx.cognitive_thought_network_simulation.individuals.CircleController;
+import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
 import javafx.scene.control.TextInputDialog;
 

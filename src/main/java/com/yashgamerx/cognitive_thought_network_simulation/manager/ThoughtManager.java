@@ -1,6 +1,6 @@
 package com.yashgamerx.cognitive_thought_network_simulation.manager;
 
-import com.yashgamerx.cognitive_thought_network_simulation.individuals.CircleController;
+import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
 import com.yashgamerx.cognitive_thought_network_simulation.individuals.ThoughtNode;
 import com.yashgamerx.cognitive_thought_network_simulation.individuals.AssociationEdge;
 import com.yashgamerx.cognitive_thought_network_simulation.storage.MemoryStorageArea;

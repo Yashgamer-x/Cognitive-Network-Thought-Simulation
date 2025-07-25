@@ -1,5 +1,6 @@
 package com.yashgamerx.cognitive_thought_network_simulation.individuals;
 
+import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.FlashManager;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
