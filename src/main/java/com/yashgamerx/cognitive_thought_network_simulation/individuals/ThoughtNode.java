@@ -164,6 +164,13 @@ public class ThoughtNode {
                 + " threshold: " + threshold);
     }
 
+    /**
+     * Returns a string representation of this {@code ThoughtNode}, including its name and energy level.
+     * The format is: {@code ThoughtNode{name='...', energy=...}}.
+     *
+     * @return a human-readable summary of this ThoughtNode’s state
+     */
+
     @Override
     public String toString() {
         return "ThoughtNode{name='" + name + "', energy=" + energy + "}";
