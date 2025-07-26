@@ -163,4 +163,10 @@ public class ThoughtNode {
                 + " updated energy: " + energy
                 + " threshold: " + threshold);
     }
+
+    @Override
+    public String toString() {
+        return "ThoughtNode{name='" + name + "', energy=" + energy + "}";
+    }
+
 }
