@@ -35,6 +35,21 @@ public class ThoughtManager {
     }
 
     /**
+     * Retrieves the ThoughtNode associated with the given name from the global MemoryStorageArea.
+     * This is a convenience lookup into the underlying ThoughtNode map.
+     *
+     * @param thoughtName the name/key of the ThoughtNode to fetch
+     * @return the matching ThoughtNode, or null if no entry exists for the given name
+     */
+
+    public static ThoughtNode getThoughtNode(String thoughtName) {
+        return MemoryStorageArea
+                .getInstance()
+                .getThoughtNodeMap()
+                .get(thoughtName);
+    }
+
+    /**
      * Connects two thoughts by creating a directed {@link AssociationEdge}
      * from the first to the second.
      *
