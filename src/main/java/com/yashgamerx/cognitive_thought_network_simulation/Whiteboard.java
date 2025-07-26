@@ -195,7 +195,7 @@ public class Whiteboard {
             CircleController ctrl = loader.getController();
 
             // Prompt for label text; if canceled, abort
-            if (!TextInputDialogForCircleClass.dialog(ctrl)) {
+            if (!TextInputDialogClass.circleDialog(ctrl)) {
                 return;
             }
 
@@ -384,5 +384,11 @@ public class Whiteboard {
     @FXML
     private void userTrash() {
         whiteboard.getChildren().clear();
+    }
+
+    @FXML
+    private void userQuery() {
+        System.out.println("user query");
+        TextInputDialogClass.queryDialog();
     }
 }
