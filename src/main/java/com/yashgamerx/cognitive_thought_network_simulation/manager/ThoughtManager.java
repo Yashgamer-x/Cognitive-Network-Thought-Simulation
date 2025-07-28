@@ -21,6 +21,11 @@ import com.yashgamerx.cognitive_thought_network_simulation.storage.MemoryStorage
  */
 public class ThoughtManager {
 
+    public static void clearThoughts() {
+        MemoryStorageArea.getInstance().getThoughtNodeMap().clear();
+        MemoryStorageArea.getInstance().getAssociationEdgeList().clear();
+    }
+
     /**
      * Checks whether a thought with the given name exists in memory.
      *
@@ -59,12 +64,13 @@ public class ThoughtManager {
      *   <li>The two nodes are already connected</li>
      * </ul>
      *
-     * @param thoughtNames an array with [0]=source and [1]=target thought names
+     * @param thoughtA - first thought
+     * @param thoughtB - second thought
      */
-    public static void connectThought(String... thoughtNames) {
+    public static void connectThought(String thoughtA, String thoughtB) {
         var storage = MemoryStorageArea.getInstance();
-        var thought1 = storage.getThoughtNodeMap().get(thoughtNames[0]);
-        var thought2 = storage.getThoughtNodeMap().get(thoughtNames[1]);
+        var thought1 = storage.getThoughtNodeMap().get(thoughtA);
+        var thought2 = storage.getThoughtNodeMap().get(thoughtB);
 
         if (thought1 == null || thought2 == null ||
                 thought1.getConnections().containsKey(thought2)) {

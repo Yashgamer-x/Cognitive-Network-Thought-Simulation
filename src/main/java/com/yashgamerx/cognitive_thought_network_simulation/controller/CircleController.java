@@ -142,15 +142,10 @@ public class CircleController {
         Tool currentTool = whiteboard.getCurrentTool();
 
         if (currentTool == Tool.LINE) {
-            // Compute the geometric center of the circle
-            double centerX = stackPane.getLayoutX() + stackPane.getWidth() / 2;
-            double centerY = stackPane.getLayoutY() + stackPane.getHeight() / 2;
-
             if (!whiteboard.isArrowing()) {
-                whiteboard.startArrowDraw(centerX, centerY, this);
+                whiteboard.startArrowDraw(this);
             } else {
-                whiteboard.setCurrentArrowTransparency(false);
-                whiteboard.endArrowDraw(centerX, centerY, this);
+                whiteboard.endArrowDraw(this);
             }
 
         } else if (currentTool == Tool.ERASER) {

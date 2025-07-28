@@ -2,6 +2,7 @@ package com.yashgamerx.cognitive_thought_network_simulation;
 
 import com.yashgamerx.cognitive_thought_network_simulation.individuals.Arrow;
 import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
+import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -132,13 +133,12 @@ public class Whiteboard {
     /**
      * Begins drawing a new arrow from a given point, binding its start to a circle.
      *
-     * @param startX          x‐coordinate where arrow begins
-     * @param startY          y‐coordinate where arrow begins
      * @param circleController controller of the circle at arrow’s start
      */
-    public void startArrowDraw(double startX,
-                               double startY,
-                               CircleController circleController) {
+    public void startArrowDraw(CircleController circleController) {
+        var stackPane = circleController.getStackPane();
+        var startX = stackPane.getLayoutX() + stackPane.getWidth() / 2;
+        var startY = stackPane.getLayoutY() + stackPane.getHeight() / 2;
         currentArrow = new Arrow(startX, startY, startX, startY);
         bindStartArrow(circleController);
         whiteboard.getChildren().addFirst(currentArrow);
@@ -166,13 +166,13 @@ public class Whiteboard {
     /**
      * Finishes drawing the current arrow, binds its end to a circle, and clears state.
      *
-     * @param endX            x‐coordinate where arrow ends
-     * @param endY            y‐coordinate where arrow ends
      * @param circleController controller of the circle at arrow’s end
      */
-    public void endArrowDraw(double endX,
-                             double endY,
-                             CircleController circleController) {
+    public void endArrowDraw(CircleController circleController) {
+        var stackPane = circleController.getStackPane();
+        double endX = stackPane.getLayoutX() + stackPane.getWidth() / 2;
+        double endY = stackPane.getLayoutY() + stackPane.getHeight() / 2;
+        setCurrentArrowTransparency(false);
         currentArrow.setEnd(endX, endY);
         bindEndArrow(circleController);
         currentArrow = null;
@@ -294,7 +294,6 @@ public class Whiteboard {
         if (currentTool == Tool.LINE &&
                 arrowing        &&
                 currentArrow   != null) {
-
             currentArrow.setEnd(e.getX(), e.getY());
         }
     }
@@ -380,9 +379,10 @@ public class Whiteboard {
         equipTool(Tool.ERASER);
     }
 
-    /** Clears all nodes from the whiteboard, equivalent to a “trash” action. */
+    /** Clears all nodes from the whiteboard and thoughts, equivalent to a “trash” action. */
     @FXML
     private void userTrash() {
+        ThoughtManager.clearThoughts();
         whiteboard.getChildren().clear();
     }
 
