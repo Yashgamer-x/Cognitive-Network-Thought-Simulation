@@ -16,7 +16,7 @@ public class MainApplication extends Application {
         MainApplication.stage = stage;
         Scene scene=null;
         try{
-            FXMLLoader fxmlLoader = new FXMLLoader(Whiteboard.class.getResource("fxml/Whiteboard.fxml"));
+            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("fxml/Whiteboard.fxml"));
             scene = new Scene(fxmlLoader.load(), 320, 240);
         } catch (Exception e) {
             e.printStackTrace();

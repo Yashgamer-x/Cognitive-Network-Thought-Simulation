@@ -1,6 +1,6 @@
 package com.yashgamerx.cognitive_thought_network_simulation.logic;
 
-import com.yashgamerx.cognitive_thought_network_simulation.Whiteboard;
+import com.yashgamerx.cognitive_thought_network_simulation.ui.Whiteboard;
 import com.yashgamerx.cognitive_thought_network_simulation.individuals.ThoughtNode;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
 

@@ -14,4 +14,6 @@ module com.yashgamerx.cognitive_thought_network_simulation {
     opens com.yashgamerx.cognitive_thought_network_simulation.manager to javafx.fxml, javafx.graphics;
     exports com.yashgamerx.cognitive_thought_network_simulation.controller;
     opens com.yashgamerx.cognitive_thought_network_simulation.controller to javafx.fxml, javafx.graphics;
+    exports com.yashgamerx.cognitive_thought_network_simulation.ui;
+    opens com.yashgamerx.cognitive_thought_network_simulation.ui to javafx.fxml, javafx.graphics;
 }

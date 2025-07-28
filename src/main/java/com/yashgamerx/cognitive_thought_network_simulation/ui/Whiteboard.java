@@ -1,5 +1,8 @@
-package com.yashgamerx.cognitive_thought_network_simulation;
+package com.yashgamerx.cognitive_thought_network_simulation.ui;
 
+import com.yashgamerx.cognitive_thought_network_simulation.MainApplication;
+import com.yashgamerx.cognitive_thought_network_simulation.TextInputDialogClass;
+import com.yashgamerx.cognitive_thought_network_simulation.Tool;
 import com.yashgamerx.cognitive_thought_network_simulation.individuals.Arrow;
 import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;

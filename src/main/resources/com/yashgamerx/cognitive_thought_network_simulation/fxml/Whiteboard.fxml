@@ -7,7 +7,7 @@
 
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.control.ScrollPane?>
-<VBox styleClass="root-vbox" stylesheets="@../css/whiteboard.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.yashgamerx.cognitive_thought_network_simulation.Whiteboard">
+<VBox styleClass="root-vbox" stylesheets="@../css/whiteboard.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.yashgamerx.cognitive_thought_network_simulation.ui.Whiteboard">
       <!--   Canvas Block   -->
       <ScrollPane fx:id="scrollPane"
                   VBox.vgrow="ALWAYS"
