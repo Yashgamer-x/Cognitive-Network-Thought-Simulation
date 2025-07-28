@@ -192,7 +192,7 @@ public class Whiteboard {
     private void onCircleDraw(double startX, double startY) {
         try {
             FXMLLoader loader = new FXMLLoader(
-                    Whiteboard.class.getResource("fxml/Circle_Label.fxml")
+                    MainApplication.class.getResource("fxml/Circle_Label.fxml")
             );
             StackPane pane = loader.load();
             CircleController ctrl = loader.getController();

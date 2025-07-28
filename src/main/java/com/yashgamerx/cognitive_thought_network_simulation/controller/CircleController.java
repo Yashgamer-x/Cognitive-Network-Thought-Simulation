@@ -111,9 +111,18 @@ public class CircleController {
             double deltaX = currentX - lastMouseX;
             double deltaY = currentY - lastMouseY;
 
-            // Translate the StackPane by the drag offset
-            stackPane.setLayoutX(stackPane.getLayoutX() + deltaX);
-            stackPane.setLayoutY(stackPane.getLayoutY() + deltaY);
+            double finalX = stackPane.getLayoutX() + deltaX;
+            double finalY = stackPane.getLayoutY() + deltaY;
+            if(finalX < 0){
+                // Translate the StackPane by the drag offset
+                stackPane.setLayoutX(0);
+            } else if (finalY < 0) {
+                stackPane.setLayoutY(0);
+            } else{
+                // Translate the StackPane by the drag offset
+                stackPane.setLayoutX(finalX);
+                stackPane.setLayoutY(finalY);
+            }
 
             lastMouseX = currentX;
             lastMouseY = currentY;
