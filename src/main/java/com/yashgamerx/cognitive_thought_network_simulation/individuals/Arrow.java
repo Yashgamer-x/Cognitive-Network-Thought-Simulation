@@ -1,6 +1,6 @@
 package com.yashgamerx.cognitive_thought_network_simulation.individuals;
 
-import com.yashgamerx.cognitive_thought_network_simulation.Tool;
+import com.yashgamerx.cognitive_thought_network_simulation.enums.Tool;
 import com.yashgamerx.cognitive_thought_network_simulation.ui.Whiteboard;
 import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;

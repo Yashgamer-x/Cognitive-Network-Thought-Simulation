@@ -1,4 +1,4 @@
-package com.yashgamerx.cognitive_thought_network_simulation;
+package com.yashgamerx.cognitive_thought_network_simulation.dialogbox;
 
 import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
 import com.yashgamerx.cognitive_thought_network_simulation.logic.SentenceProcessor;
