@@ -385,8 +385,10 @@ public class Whiteboard {
     /** Clears all nodes from the whiteboard and thoughts, equivalent to a “trash” action. */
     @FXML
     private void userTrash() {
-        ThoughtManager.clearThoughts();
-        whiteboard.getChildren().clear();
+        if(TextInputDialogClass.confirmDialog()){
+            ThoughtManager.clearThoughts();
+            whiteboard.getChildren().clear();
+        }
     }
 
     @FXML

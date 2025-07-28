@@ -24,7 +24,7 @@ public class TextInputDialogClass {
      *         false if the dialog was cancelled or the thought already exists
      */
     public static boolean circleDialog(CircleController circleController) {
-        Optional<String> result = getCircleString();
+        var result = getCircleString();
 
         if (result.isEmpty() || ThoughtManager.thoughtExists(result.get())) {
             System.out.println("Dialog was cancelled or thought already exists.");
@@ -45,7 +45,7 @@ public class TextInputDialogClass {
      * input to the SentenceProcessor for computation.
      */
     public static void queryDialog() {
-        Optional<String> result = getQueryString();
+        var result = getQueryString();
 
         if (result.isEmpty() || ThoughtManager.thoughtExists(result.get())) {
             System.out.println("Dialog was cancelled or thought already exists.");
@@ -86,6 +86,20 @@ public class TextInputDialogClass {
         dialog.setTitle("Input Required");
         dialog.setHeaderText("Please enter query/statement:");
         dialog.setContentText("Query:");
+
+        return dialog.showAndWait();
+    }
+
+    public static boolean confirmDialog() {
+        var result = getConfirmationString();
+        return result.map(s -> s.equals("yes")).orElse(false);
+    }
+
+    private static Optional<String> getConfirmationString(){
+        TextInputDialog dialog = new TextInputDialog("");
+        dialog.setTitle("Confirmation Required");
+        dialog.setHeaderText("Are you sure you want to exit?");
+        dialog.setContentText("Type 'yes' to exit:");
 
         return dialog.showAndWait();
     }
