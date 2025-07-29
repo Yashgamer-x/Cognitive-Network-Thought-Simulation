@@ -445,12 +445,36 @@ public class Whiteboard {
         }
     }
 
+    /**
+     * Opens a dialog for the user to enter and execute a custom query.
+     *
+     * <p>This method is bound to an FXML control (e.g., a menu item or button)
+     * and delegates to the TextInputDialogClass to display a text input
+     * dialog. User input handling and actual query execution are performed
+     * within the dialog class.</p>
+     *
+     * @see TextInputDialogClass#queryDialog()
+     */
     @FXML
     private void userQuery() {
         TextInputDialogClass.queryDialog();
     }
 
-    public void databaseLoad() {
+    /**
+     * Loads all nodes from the database into the application and
+     * disables the "load" icon once complete.
+     *
+     * <p>This method is bound to an FXML control (e.g., a button or toolbar
+     * icon). It calls {@link #loadNodes()} to fetch and render nodes,
+     * then locates the ImageView with fx:id="load" in the current scene,
+     * disabling and hiding it to prevent repeated loads.</p>
+     *
+     * @throws RuntimeException if loading nodes fails due to a
+     *                          {@link java.sql.SQLException} or
+     *                          {@link java.io.IOException}
+     */
+    @FXML
+    private void databaseLoad() {
         try {
             loadNodes();
             var scene = MainApplication.getStage().getScene();
