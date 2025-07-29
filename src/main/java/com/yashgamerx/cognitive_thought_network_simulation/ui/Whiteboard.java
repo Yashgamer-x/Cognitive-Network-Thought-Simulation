@@ -453,6 +453,10 @@ public class Whiteboard {
     public void databaseLoad() {
         try {
             loadNodes();
+            var scene = MainApplication.getStage().getScene();
+            var imageView  =(ImageView) scene.lookup("#load");
+            imageView.setDisable(true);
+            imageView.setVisible(false);
         } catch (SQLException | IOException e) {
             throw new RuntimeException(e);
         }
