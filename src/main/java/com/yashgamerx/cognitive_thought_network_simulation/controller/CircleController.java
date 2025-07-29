@@ -10,6 +10,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Ellipse;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,21 +27,22 @@ import java.util.List;
  *   <li>Safe suppression of click events immediately after a drag</li>
  * </ul>
  */
+@Getter @Setter
 public class CircleController {
 
     /** Flag set when a drag motion is detected, to swallow the subsequent click. */
     private boolean dragDetected;
 
     /** Container holding the ellipse shape and label node. */
-    @Getter @FXML
+    @FXML
     private StackPane stackPane;
 
     /** Ellipse graphic that serves as the circle background. */
-    @Getter @FXML
+    @FXML
     private Ellipse ellipse;
 
     /** Centered text label displayed on the circle. */
-    @Getter @FXML
+    @FXML
     private Label label;
 
     /** Last recorded X coordinate during a drag operation. */
