@@ -1,6 +1,7 @@
 package com.yashgamerx.cognitive_thought_network_simulation.individuals;
 
 import com.yashgamerx.cognitive_thought_network_simulation.enums.Tool;
+import com.yashgamerx.cognitive_thought_network_simulation.manager.MySQLManager;
 import com.yashgamerx.cognitive_thought_network_simulation.ui.Whiteboard;
 import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
@@ -78,6 +79,7 @@ public class Arrow extends Group {
             startNode.removeOutgoingArrow(this);
             endNode.removeIncomingArrow(this);
             ThoughtManager.disconnectThought(startNode.getLabel().getText(), endNode.getLabel().getText());
+            MySQLManager.deleteArrow(this);
             startNode = endNode = null;
         }
     }

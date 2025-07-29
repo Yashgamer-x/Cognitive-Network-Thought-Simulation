@@ -2,9 +2,13 @@ package com.yashgamerx.cognitive_thought_network_simulation.manager;
 
 import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
 import com.yashgamerx.cognitive_thought_network_simulation.exception.DataAccessException;
+import com.yashgamerx.cognitive_thought_network_simulation.individuals.Arrow;
 import com.yashgamerx.cognitive_thought_network_simulation.storage.MySQLDatabase;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Logger;
 
 /**
  * Provides CRUD operations for circle nodes in the MySQL database.
@@ -21,6 +25,8 @@ import java.sql.SQLException;
  */
 public class MySQLManager {
 
+    private static final Logger log = Logger.getLogger(MySQLManager.class.getName());
+
     /**
      * Inserts a new circle node record into the database.
      *
@@ -29,23 +35,21 @@ public class MySQLManager {
      * `circle_nodes` table. It returns true if one record was inserted.</p>
      *
      * @param circleController the controller containing node data to persist
-     * @return true if the record was inserted successfully; false otherwise
      * @throws DataAccessException if a database access error occurs
      */
-    public static boolean createCircleNode(CircleController circleController) {
-        String sql = "INSERT INTO circle_nodes(label_text, layout_x, layout_y) VALUES (?, ?, ?)";
-
-        try (
-                var connection = MySQLDatabase.getInstance().getConnection();
-                var stmt = connection.prepareStatement(sql)
-        ) {
+    public static void createCircleNode(CircleController circleController) {
+        String sql = "INSERT INTO circle_node(label_text, layout_x, layout_y) VALUES (?, ?, ?)";
+        var connection = MySQLDatabase.getInstance().getConnection();
+        try (var stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, circleController.getLabel().getText());
             stmt.setDouble(2, circleController.getStackPane().getLayoutX());
             stmt.setDouble(3, circleController.getStackPane().getLayoutY());
 
             int rowsInserted = stmt.executeUpdate();
-            return rowsInserted == 1;
-
+            log.info("Inserted "+rowsInserted+" circle node(s)");
+            if(rowsInserted != 1 && rowsInserted != 0){
+                throw new DataAccessException("Failed to create circle node");
+            }
         } catch (SQLException e) {
             throw new DataAccessException("Failed to create circle node", e);
         }
@@ -59,20 +63,15 @@ public class MySQLManager {
      * `circle_nodes` table. It returns true if one record was deleted.</p>
      *
      * @param circleController the controller whose label identifies the node
-     * @return true if exactly one record was deleted; false otherwise
      * @throws DataAccessException if a database access error occurs
      */
-    public static boolean deleteCircleNode(CircleController circleController) {
-        String sql = "DELETE FROM circle_nodes WHERE label_text = ?";
-
-        try (
-                var connection = MySQLDatabase.getInstance().getConnection();
-                var stmt = connection.prepareStatement(sql)
-        ) {
+    public static void deleteCircleNode(CircleController circleController) {
+        String sql = "DELETE FROM circle_node WHERE label_text = ?";
+        var connection = MySQLDatabase.getInstance().getConnection();
+        try (var stmt = connection.prepareStatement(sql)) {
             stmt.setString(1, circleController.getLabel().getText());
             int rowsDeleted = stmt.executeUpdate();
-            return rowsDeleted == 1;
-
+            log.info("Deleted "+rowsDeleted+" circle node(s): "+circleController.getLabel().getText());
         } catch (SQLException e) {
             throw new DataAccessException("Failed to delete circle node", e);
         }
@@ -85,23 +84,24 @@ public class MySQLManager {
      * identified by its label text. It returns true if one record was updated.</p>
      *
      * @param circleController the controller containing the node’s updated state
-     * @return true if exactly one row was updated; false if no matching node was found
      * @throws DataAccessException if a database access error occurs
      */
-    public static boolean updateCircleNode(CircleController circleController) {
-        String sql = "UPDATE circle_nodes SET layout_x = ?, layout_y = ? WHERE label_text = ?";
-
-        try (
-                var connection = MySQLDatabase.getInstance().getConnection();
-                var stmt = connection.prepareStatement(sql)
-        ) {
+    public static void updateCircleNode(CircleController circleController) {
+        String sql = "UPDATE circle_node SET layout_x = ?, layout_y = ? WHERE label_text = ?";
+        var connection = MySQLDatabase.getInstance().getConnection();
+        try (var stmt = connection.prepareStatement(sql)) {
             stmt.setDouble(1, circleController.getStackPane().getLayoutX());
             stmt.setDouble(2, circleController.getStackPane().getLayoutY());
             stmt.setString(3, circleController.getLabel().getText());
 
             int rowsUpdated = stmt.executeUpdate();
-            return rowsUpdated == 1;
-
+            log.info("Updated "+rowsUpdated+" circle node(s): "+circleController.getLabel().getText());
+            if(rowsUpdated != 1){
+                throw new DataAccessException(
+                        "Failed to update circle node with label: "
+                                + circleController.getLabel().getText()
+                );
+            }
         } catch (SQLException e) {
             throw new DataAccessException(
                     "Failed to update circle node with label: "
@@ -117,20 +117,87 @@ public class MySQLManager {
      * WHERE clause, removing every record. Returns true if one or more rows
      * were deleted; returns false if the table was already empty.</p>
      *
-     * @return true if at least one record was deleted; false if no records existed
      * @throws DataAccessException if a database access error occurs
      */
-    public static boolean deleteAllCircleNodes() {
-        String sql = "DELETE FROM circle_nodes";
-
-        try (
-                var connection = MySQLDatabase.getInstance().getConnection();
-                var stmt = connection.prepareStatement(sql)
-        ) {
-            int rowsDeleted = stmt.executeUpdate();
-            return rowsDeleted > 0;
+    public static void deleteAllCircleNodes() {
+        String sql = "DELETE FROM circle_node";
+        var connection = MySQLDatabase.getInstance().getConnection();
+        try (var stmt = connection.prepareStatement(sql)) {
+            stmt.executeUpdate();
+            log.info("Deleted all circle nodes");
         } catch (SQLException e) {
             throw new DataAccessException("Failed to delete circle nodes", e);
+        }
+    }
+
+    public static ResultSet getCircleNodeResultSet(){
+        var sql = "SELECT * FROM circle_node";
+        var connection = MySQLDatabase.getInstance().getConnection();
+        PreparedStatement stmt;
+        try {
+            stmt = connection.prepareStatement(sql);
+            log.info("Executing query: "+sql);
+            return stmt.executeQuery();
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to get circle node ResultSet", e);
+        }
+    }
+
+    public static void createArrow(Arrow arrow) {
+        String sql = "INSERT INTO arrow(id, source_node_label, target_node_label) VALUES (?, ?, ?)";
+        var connection = MySQLDatabase.getInstance().getConnection();
+        try (var stmt = connection.prepareStatement(sql)) {
+            var circleA = arrow.getStartNode().getLabel().getText();
+            var circleB = arrow.getEndNode().getLabel().getText();
+            stmt.setString(1, circleA + "->" + circleB);
+            stmt.setString(2, circleA);
+            stmt.setString(3, circleB);
+
+            int rowsInserted = stmt.executeUpdate();
+            log.info("Inserted "+rowsInserted+" arrow(s)");
+            if(rowsInserted != 1 && rowsInserted != 0){
+                throw new DataAccessException("Failed to create arrow");
+            }
+
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to create circle node", e);
+        }
+    }
+
+    public static void deleteArrow(Arrow arrow){
+        var sql = "DELETE FROM arrow WHERE id = ?";
+        var connection = MySQLDatabase.getInstance().getConnection();
+        try (var stmt = connection.prepareStatement(sql)) {
+            var id = arrow.getStartNode().getLabel().getText()+"->"+arrow.getEndNode().getLabel().getText();
+            stmt.setString(1, id);
+            int rowsDeleted = stmt.executeUpdate();
+            log.info("Deleted "+rowsDeleted+" arrow(s)");
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to delete arrow", e);
+        }
+    }
+
+    public static ResultSet getArrowResultSet(){
+        var sql = "SELECT * FROM arrow";
+        var connection = MySQLDatabase.getInstance().getConnection();
+        PreparedStatement stmt;
+        try {
+            stmt = connection.prepareStatement(sql);
+            log.info("Executing query: "+sql);
+            return stmt.executeQuery();
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to get arrow ResultSet", e);
+        }
+    }
+
+    public static void deleteAllArrows(){
+        var sql = "DELETE FROM arrow";
+        var connection = MySQLDatabase.getInstance().getConnection();
+        try (var stmt = connection.prepareStatement(sql)) {
+            stmt.executeUpdate();
+            log.info("Deleted all arrows");
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to delete arrows", e);
         }
     }
 

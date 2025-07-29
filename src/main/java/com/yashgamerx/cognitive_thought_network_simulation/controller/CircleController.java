@@ -1,6 +1,7 @@
 package com.yashgamerx.cognitive_thought_network_simulation.controller;
 
 import com.yashgamerx.cognitive_thought_network_simulation.individuals.Arrow;
+import com.yashgamerx.cognitive_thought_network_simulation.manager.MySQLManager;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
 import com.yashgamerx.cognitive_thought_network_simulation.enums.Tool;
 import com.yashgamerx.cognitive_thought_network_simulation.ui.Whiteboard;
@@ -74,7 +75,7 @@ public class CircleController {
      *
      * @param text the new label string to display
      */
-    public void setLabel(String text) {
+    public void setLabelText(String text) {
         label.setText(text);
         // Create/register thought in storage and associate this controller
         ThoughtManager.createThought(text, this);
@@ -173,9 +174,8 @@ public class CircleController {
 
             stackPane.getChildren().clear();
             incomingArrows = outgoingArrows = null;
-
             ThoughtManager.removeThought(label.getText());
-
+            MySQLManager.deleteCircleNode(this);
         } else if (currentTool == null) {
             // No tool => activate this thought
             // (fires energy propagation & triggers visual flash)

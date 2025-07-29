@@ -5,6 +5,7 @@ import com.yashgamerx.cognitive_thought_network_simulation.dialogbox.TextInputDi
 import com.yashgamerx.cognitive_thought_network_simulation.enums.Tool;
 import com.yashgamerx.cognitive_thought_network_simulation.individuals.Arrow;
 import com.yashgamerx.cognitive_thought_network_simulation.controller.CircleController;
+import com.yashgamerx.cognitive_thought_network_simulation.manager.MySQLManager;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -18,6 +19,10 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.logging.Logger;
 
 /**
  * Manages an interactive whiteboard UI that supports:
@@ -58,7 +63,7 @@ public class Whiteboard {
     @Setter
     private Arrow currentArrow;
 
-    /** Padding beyond the click point before expanding canvas. */
+    /** Padding beyond the click point before expanding the canvas. */
     private static final double BUFFER = 200;
 
     /** Increment by which to grow the canvas when needed. */
@@ -66,6 +71,8 @@ public class Whiteboard {
 
     /** Upper bound on canvas size to prevent unbounded growth. */
     private static final double MAX_CANVAS_SIZE = 100_000;
+
+    private static final Logger log = Logger.getLogger(Whiteboard.class.getName());
 
     /**
      * Initializes the whiteboard after FXML loading.
@@ -80,6 +87,39 @@ public class Whiteboard {
         arrowing      = false;
         currentArrow  = null;
         instance      = this;
+    }
+
+    public void loadNodes() throws SQLException, IOException {
+        try(var circleNodeResultSet  = MySQLManager.getCircleNodeResultSet()){
+            while(circleNodeResultSet.next()){
+                var labelText = circleNodeResultSet.getString("label_text");
+                var layoutX = circleNodeResultSet.getDouble("layout_x");
+                var layoutY = circleNodeResultSet.getDouble("layout_y");
+
+                FXMLLoader loader = new FXMLLoader(
+                        MainApplication.class.getResource("fxml/Circle_Label.fxml")
+                );
+                StackPane pane = loader.load();
+                CircleController circleController = loader.getController();
+                whiteboard.getChildren().add(pane);
+                circleController.getStackPane().setLayoutX(layoutX);
+                circleController.getStackPane().setLayoutY(layoutY);
+                circleController.setLabelText(labelText);
+            }
+        }
+        try(var arrowResultSet  = MySQLManager.getArrowResultSet()){
+            while(arrowResultSet.next()){
+                var sourceNodeLabel = arrowResultSet.getString("source_node_label");
+                var targetNodeLabel = arrowResultSet.getString("target_node_label");
+                var sourceNodeController = ThoughtManager.getThoughtNode(sourceNodeLabel);
+                var targetNodeController = ThoughtManager.getThoughtNode(targetNodeLabel);
+                ThoughtManager.connectThought(sourceNodeLabel, targetNodeLabel);
+                Platform.runLater(()->{
+                    startArrowDraw(sourceNodeController.getCircleController());
+                    loadEndArrow(targetNodeController.getCircleController());
+                });
+            }
+        }
     }
 
     /**
@@ -178,8 +218,20 @@ public class Whiteboard {
         setCurrentArrowTransparency(false);
         currentArrow.setEnd(endX, endY);
         bindEndArrow(circleController);
+        MySQLManager.createArrow(currentArrow);
         currentArrow = null;
-        arrowing      = false;
+        arrowing = false;
+    }
+
+    private void loadEndArrow(CircleController circleController) {
+        var stackPane = circleController.getStackPane();
+        double endX = stackPane.getLayoutX() + stackPane.getWidth() / 2;
+        double endY = stackPane.getLayoutY() + stackPane.getHeight() / 2;
+        setCurrentArrowTransparency(false);
+        currentArrow.setEnd(endX, endY);
+        bindEndArrow(circleController);
+        currentArrow = null;
+        arrowing = false;
     }
 
     /**
@@ -195,14 +247,14 @@ public class Whiteboard {
                     MainApplication.class.getResource("fxml/Circle_Label.fxml")
             );
             StackPane pane = loader.load();
-            CircleController ctrl = loader.getController();
+            CircleController circleController = loader.getController();
 
             // Prompt for label text; if canceled, abort
-            if (!TextInputDialogClass.circleDialog(ctrl)) {
+            if (!TextInputDialogClass.circleDialog(circleController)) {
                 return;
             }
 
-            // Expand whiteboard if clicking near the edge
+            // Expand the whiteboard if clicking near the edge
             if (startX + BUFFER > whiteboard.getPrefWidth()) {
                 whiteboard.setPrefWidth(
                         Math.min(MAX_CANVAS_SIZE,
@@ -218,10 +270,11 @@ public class Whiteboard {
 
             pane.setLayoutX(startX);
             pane.setLayoutY(startY);
+            MySQLManager.createCircleNode(circleController);
             whiteboard.getChildren().add(pane);
 
         } catch (Exception ex) {
-            System.out.println("Unable to load Circle_Label.fxml");
+            log.severe("Unable to load Circle_Label.fxml");
         }
     }
 
@@ -282,7 +335,6 @@ public class Whiteboard {
     private void handleMouseDragged(MouseEvent e) {
         if (e.getButton() == MouseButton.MIDDLE ||
                 e.getButton() == MouseButton.SECONDARY) {
-
             manageScrollOnDrag(e.getSceneX(), e.getSceneY());
         }
     }
@@ -290,7 +342,7 @@ public class Whiteboard {
     /**
      * Updates the arrow’s end point to follow the mouse while drawing.
      *
-     * @param e MouseEvent with current pointer location
+     * @param e MouseEvent with the current pointer location
      */
     @FXML
     private void handleMouseMoved(MouseEvent e) {
@@ -388,12 +440,21 @@ public class Whiteboard {
         if(TextInputDialogClass.confirmDialog()){
             ThoughtManager.clearThoughts();
             whiteboard.getChildren().clear();
+            MySQLManager.deleteAllCircleNodes();
+            MySQLManager.deleteAllArrows();
         }
     }
 
     @FXML
     private void userQuery() {
-        System.out.println("user query");
         TextInputDialogClass.queryDialog();
+    }
+
+    public void databaseLoad() {
+        try {
+            loadNodes();
+        } catch (SQLException | IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

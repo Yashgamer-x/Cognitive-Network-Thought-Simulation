@@ -1,6 +1,8 @@
 package com.yashgamerx.cognitive_thought_network_simulation;
 
+import com.yashgamerx.cognitive_thought_network_simulation.manager.MySQLManager;
 import com.yashgamerx.cognitive_thought_network_simulation.manager.ThoughtUpdater;
+import com.yashgamerx.cognitive_thought_network_simulation.storage.MemoryStorageArea;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -26,7 +28,13 @@ public class MainApplication extends Application {
         stage.setScene(scene);
         ThoughtUpdater.startService();
         stage.show();
-        stage.setOnCloseRequest(_ -> ThoughtUpdater.stopService());
+        stage.setOnCloseRequest(_ -> {
+            ThoughtUpdater.stopService();
+            var map = MemoryStorageArea.getInstance().getThoughtNodeMap();
+            map.values().parallelStream().forEach(
+                    node -> MySQLManager.updateCircleNode(node.getCircleController())
+            );
+        });
     }
 
     public static void main(String[] args) {

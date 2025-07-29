@@ -46,6 +46,11 @@
                   <Image url="@../images/search_50dp_000000.png" />
             </ImageView>
 
+            <!--      Query      -->
+            <ImageView id="load" onMouseClicked="#databaseLoad" pickOnBounds="true" preserveRatio="true" styleClass="logo">
+                  <Image url="@../images/database_50dp_000000.png" />
+            </ImageView>
+
             <!--      Trash      -->
             <ImageView id="trash" onMouseClicked="#userTrash" pickOnBounds="true" preserveRatio="true" styleClass="logo">
                   <Image url="@../images/delete_50dp_000000.png" />
