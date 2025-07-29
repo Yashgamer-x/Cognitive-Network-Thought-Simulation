@@ -2,6 +2,8 @@ module com.yashgamerx.cognitive_thought_network_simulation {
     requires javafx.controls;
     requires javafx.fxml;
     requires static lombok;
+    requires java.sql;
+    requires mysql.connector.j;
 
 
     opens com.yashgamerx.cognitive_thought_network_simulation to javafx.fxml, javafx.graphics;
