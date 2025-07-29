@@ -109,4 +109,29 @@ public class MySQLManager {
             );
         }
     }
+
+    /**
+     * Deletes all circle node records from the database.
+     *
+     * <p>Executes a DELETE statement on the `circle_nodes` table without a
+     * WHERE clause, removing every record. Returns true if one or more rows
+     * were deleted; returns false if the table was already empty.</p>
+     *
+     * @return true if at least one record was deleted; false if no records existed
+     * @throws DataAccessException if a database access error occurs
+     */
+    public static boolean deleteAllCircleNodes() {
+        String sql = "DELETE FROM circle_nodes";
+
+        try (
+                var connection = MySQLDatabase.getInstance().getConnection();
+                var stmt = connection.prepareStatement(sql)
+        ) {
+            int rowsDeleted = stmt.executeUpdate();
+            return rowsDeleted > 0;
+        } catch (SQLException e) {
+            throw new DataAccessException("Failed to delete circle nodes", e);
+        }
+    }
+
 }
