@@ -89,6 +89,31 @@ public class Whiteboard {
         instance      = this;
     }
 
+    /**
+     * Loads thought nodes and their connecting arrows from the database
+     * and instantiates their UI representations on the whiteboard.
+     *
+     * <p>First, retrieves circle node records via
+     * MySQLManager.getCircleNodeResultSet() and for each record:
+     * <ul>
+     *   <li>Extracts the label text, layout X, and layout Y coordinates.</li>
+     *   <li>Loads the Circle_Label.fxml component with FXMLLoader.</li>
+     *   <li>Adds the resulting StackPane to the whiteboard.</li>
+     *   <li>Positions the node and sets its label text.</li>
+     * </ul>
+     *
+     * <p>Then, retrieves arrow records via MySQLManager.getArrowResultSet() and for each record:
+     * <ul>
+     *   <li>Reads the source and target node labels.</li>
+     *   <li>Obtains the corresponding CircleController instances from ThoughtManager.</li>
+     *   <li>Registers the logical connection via ThoughtManager.connectThought().</li>
+     *   <li>On the JavaFX Application Thread, draws the arrow start and end
+     *       using startArrowDraw() and loadEndArrow().</li>
+     * </ul>
+     *
+     * @throws SQLException if a database access error occurs while fetching nodes or arrows
+     * @throws IOException  if loading the Circle_Label.fxml resource fails
+     */
     public void loadNodes() throws SQLException, IOException {
         try(var circleNodeResultSet  = MySQLManager.getCircleNodeResultSet()){
             while(circleNodeResultSet.next()){
@@ -279,25 +304,35 @@ public class Whiteboard {
     }
 
     /**
-     * Records the mouse position to support panning when drag begins.
+     * Captures the initial mouse press position to prepare for panning.
      *
-     * @param e the MouseEvent capturing initial press
+     * <p>This FXML event handler activates when the middle or secondary
+     * (right) mouse button is pressed. It records the current scene X and Y
+     * coordinates into {@code lastMouseX} and {@code lastMouseY}, which are
+     * then used as reference points for subsequent drag-based scrolling.</p>
+     *
+     * @param e the MouseEvent representing the mouse press with scene coordinates
      */
     @FXML
     private void handleMousePressed(MouseEvent e) {
         if (e.getButton() == MouseButton.MIDDLE ||
                 e.getButton() == MouseButton.SECONDARY) {
-
             lastMouseX = e.getSceneX();
             lastMouseY = e.getSceneY();
         }
     }
 
     /**
-     * Calculates and applies scroll deltas based on mouse movement.
+     * Pans the ScrollPane content in response to mouse drag movement.
      *
-     * @param x current scene X
-     * @param y current scene Y
+     * <p>This method computes the horizontal and vertical deltas between
+     * the current mouse coordinates and the last recorded mouse position.
+     * It then updates the last mouse coordinates and, if the content
+     * dimensions exceed the viewport dimensions, adjusts the scrollPane’s
+     * horizontal (hvalue) and vertical (vvalue) scroll positions proportionally.</p>
+     *
+     * @param x the current mouse X position in scene coordinates
+     * @param y the current mouse Y position in scene coordinates
      */
     private void manageScrollOnDrag(double x, double y) {
         Point2D curr = new Point2D(x, y);
@@ -307,14 +342,12 @@ public class Whiteboard {
         lastMouseX = curr.getX();
         lastMouseY = curr.getY();
 
-        double contentWidth  = scrollPane.getContent()
-                .getBoundsInLocal().getWidth();
-        double viewportWidth = scrollPane.getViewportBounds().getWidth();
-        double contentHeight = scrollPane.getContent()
-                .getBoundsInLocal().getHeight();
-        double viewportHeight= scrollPane.getViewportBounds().getHeight();
+        double contentWidth   = scrollPane.getContent().getBoundsInLocal().getWidth();
+        double viewportWidth  = scrollPane.getViewportBounds().getWidth();
+        double contentHeight  = scrollPane.getContent().getBoundsInLocal().getHeight();
+        double viewportHeight = scrollPane.getViewportBounds().getHeight();
 
-        if (contentWidth  > viewportWidth) {
+        if (contentWidth > viewportWidth) {
             scrollPane.setHvalue(
                     scrollPane.getHvalue() + deltaX / (contentWidth - viewportWidth)
             );
@@ -327,9 +360,15 @@ public class Whiteboard {
     }
 
     /**
-     * Handles drag events on the whiteboard; uses middle or right button for panning.
+     * Enables panning of the whiteboard when dragging with the middle or right mouse button.
      *
-     * @param e the MouseEvent with drag coordinates
+     * <p>If the user drags the mouse while holding either the middle
+     * (MouseButton.MIDDLE) or secondary/right button
+     * (MouseButton.SECONDARY), this event handler delegates to
+     * {@link #manageScrollOnDrag(double, double)} to adjust the view
+     * based on the current scene coordinates.</p>
+     *
+     * @param e the MouseEvent containing the current drag coordinates in scene space
      */
     @FXML
     private void handleMouseDragged(MouseEvent e) {
@@ -340,24 +379,36 @@ public class Whiteboard {
     }
 
     /**
-     * Updates the arrow’s end point to follow the mouse while drawing.
+     * Follows the mouse pointer to update the current arrow’s end point during drawing.
      *
-     * @param e MouseEvent with the current pointer location
+     * <p>This FXML event handler is active only when the LINE tool is selected,
+     * an arrow drawing is in progress (arrowing == true), and a currentArrow exists.
+     * As the mouse moves, the arrow’s end coordinates are updated to the cursor position.</p>
+     *
+     * @param e MouseEvent containing the current cursor coordinates
      */
     @FXML
     private void handleMouseMoved(MouseEvent e) {
         if (currentTool == Tool.LINE &&
-                arrowing        &&
-                currentArrow   != null) {
+                arrowing &&
+                currentArrow != null) {
             currentArrow.setEnd(e.getX(), e.getY());
         }
     }
 
     /**
-     * Looks up the ImageView icon for a given tool in the main scene.
+     * Retrieves the ImageView icon for the specified drawing tool from the main scene.
      *
-     * @param tool enum value of the desired tool icon
-     * @return the ImageView node, or null if not found
+     * <p>The lookup uses the tool’s fx:id selector:
+     * <ul>
+     *   <li>LINE → "#line"</li>
+     *   <li>CIRCLE → "#circle"</li>
+     *   <li>ERASER → "#eraser"</li>
+     * </ul>
+     * If the node is not found or isn’t an ImageView, this method returns null.</p>
+     *
+     * @param tool the Tool enum identifying which icon to fetch
+     * @return the ImageView for the given tool, or null if no matching node exists
      */
     private ImageView imageViewLookup(Tool tool) {
         var scene = MainApplication.getStage().getScene();
@@ -369,7 +420,10 @@ public class Whiteboard {
     }
 
     /**
-     * Unequips the current tool, resets its icon scale, and aborts any in-progress draw.
+     * Deselects the currently active tool, aborts any in-progress drawing,
+     * and resets the tool’s icon scale back to its default.
+     *
+     * <p>If there is no tool equipped, this method does nothing.</p>
      */
     private void unequipTool() {
         if (currentTool != null) {
@@ -381,10 +435,13 @@ public class Whiteboard {
     }
 
     /**
-     * Equips the specified tool, scaling its icon to indicate selection.
-     * Clicking the same tool again will unequip it.
+     * Toggles the specified tool as the active tool.
+     * <ul>
+     *   <li>If the tool passed in is already selected, it will be unequipped.</li>
+     *   <li>If a new tool is selected, its icon is scaled up to indicate activation.</li>
+     * </ul>
      *
-     * @param tool the Tool to select
+     * @param tool the Tool to equip or toggle off if it’s already the current tool
      */
     private void equipTool(Tool tool) {
         if (currentTool == tool) {
